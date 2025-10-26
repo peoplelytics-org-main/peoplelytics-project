@@ -23,9 +23,7 @@ import { Bar, Pie, Line, Scatter } from 'react-chartjs-2';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 // Import calculation functions
-//import * as hrCalculations from '../services/hrCalculations';
-import { calculateFlightRiskScore, calculateImpactScore } from "../../services/hrCalculations";
-
+import * as hrCalculations from '../services/hrCalculations';
 
 // Import constants and types
 import { AVAILABLE_WIDGETS, MOCK_RECRUITMENT_FUNNEL_DATA, MOCK_JOB_POSITIONS } from '../constants';

@@ -9,7 +9,7 @@ import Input from '../components/ui/Input';
 const LoginPage: React.FC = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
-    const [username, setUsername] = useState('');
+    const [email, setemail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +19,7 @@ const LoginPage: React.FC = () => {
         setError('');
         setIsLoading(true);
         try {
-            await login(username, password);
+            await login(email, password);
             navigate('/app/home');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Invalid credentials.');
@@ -42,7 +42,7 @@ const LoginPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
-                        <Input label="Username" id="username" type="email" value={username} onChange={e => setUsername(e.target.value)} placeholder="superadmin@peoplelytics.com" required />
+                        <Input label="Email" id="username" type="email" value={email} onChange={e => setemail(e.target.value)} placeholder="superadmin@peoplelytics.com" required />
                         <Input label="Password" id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                         
                         {error && <p className="text-sm text-red-400">{error}</p>}
@@ -54,9 +54,10 @@ const LoginPage: React.FC = () => {
                     <div className="mt-4 text-center text-xs text-text-secondary bg-card border border-border p-3 rounded-md">
                         <h4 className="font-semibold text-text-primary mb-1">Demo Users</h4>
                         <p>Try logging in as:</p>
-                        <p className="mt-1 font-mono">User: <span className="text-primary-400">superadmin@peoplelytics.com</span></p>
-                        <p className="font-mono">User: <span className="text-primary-400">amnakhan@innovateinc.com</span></p>
-                        <p className="font-mono">Password: <span className="text-primary-400">password123</span></p>
+                        <p className="mt-1 font-mono">Email: <span className="text-primary-400">admin@peoplelytics.com</span></p>
+                        <p className="font-mono">Password: <span className="text-primary-400">SuperAdminP@ss123!</span></p>
+                        <p className="font-mono">Organization admin: <span className="text-primary-400">admin@acme.com</span></p>
+                        <p className="font-mono">Password: <span className="text-primary-400">OrgAdminP@ss123!</span></p>
                     </div>
                 </CardContent>
             </Card>
@@ -65,3 +66,10 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
+
+
+// <h4 className="font-semibold text-text-primary mb-1">Demo Users</h4>
+// <p>Try logging in as:</p>
+// <p className="mt-1 font-mono">User: <span className="text-primary-400">superadmin@peoplelytics.com</span></p>
+// <p className="font-mono">User: <span className="text-primary-400">amnakhan@innovateinc.com</span></p>
+// <p className="font-mono">Password: <span className="text-primary-400">password123</span></p>

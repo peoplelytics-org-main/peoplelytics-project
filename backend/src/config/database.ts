@@ -6,12 +6,15 @@ const MONGODB_OPTIONS = {
   maxPoolSize: 10,
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
-  bufferCommands: false,
-  bufferMaxEntries: 0,
+  // bufferCommands: false,
+  // bufferMaxEntries: 0,
 };
 
 export const connectDatabase = async (): Promise<void> => {
   try {
+
+    // Set mongoose options globally before connecting
+    mongoose.set('bufferCommands', false);
     await mongoose.connect(MONGODB_URI, MONGODB_OPTIONS);
     logger.info('✅ Connected to MongoDB successfully');
     
