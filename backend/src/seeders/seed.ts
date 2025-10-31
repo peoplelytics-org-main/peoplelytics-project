@@ -54,7 +54,7 @@ const defaultPreferences = {
 const seed = async () => {
   try {
     // 1. Connect to the core database
-    const dbUri = process.env.MONGO_URI || "mongodb://localhost:27017/peoplelytics";
+    const dbUri = process.env.MONGO_URI || "mongodb://localhost:27017/master_db";
     await mongoose.connect(dbUri);
     console.log('✅ Connected to DB:', dbUri);
 

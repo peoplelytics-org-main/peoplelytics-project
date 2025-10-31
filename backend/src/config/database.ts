@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { logger } from '@/utils/helpers/logger';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/peoplelytics';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/master_db';
 const MONGODB_OPTIONS = {
   maxPoolSize: 10,
   serverSelectionTimeoutMS: 5000,

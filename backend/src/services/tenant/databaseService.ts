@@ -20,8 +20,8 @@ export class DatabaseService {
    */
   public getCoreConnection(): Connection {
     if (!this.coreConnection) {
-      const coreDbName = 'peoplelytics_core';
-      const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/peoplelytics';
+      const coreDbName = 'peoplelytics';
+      const mongoUri = process.env.MONGODB_URI!;
       const baseUri = mongoUri.replace('/peoplelytics', '');
       
       this.coreConnection = mongoose.createConnection(
@@ -50,7 +50,7 @@ export class DatabaseService {
     }
 
     const orgDbName = `org_${orgId}`;
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/peoplelytics';
+    const mongoUri = process.env.MONGODB_URI!;
     const baseUri = mongoUri.replace('/peoplelytics', '');
     
     const orgConnection = mongoose.createConnection(
@@ -110,7 +110,7 @@ export class DatabaseService {
    */
   public async listOrganizationDatabases(): Promise<string[]> {
     try {
-      const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/peoplelytics';
+      const mongoUri = process.env.MONGODB_URI|| 'mongodb://localhost:27017/peoplelytics';
       const baseUri = mongoUri.replace('/peoplelytics', '');
       const adminConnection = mongoose.createConnection(baseUri);
       

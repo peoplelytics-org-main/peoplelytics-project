@@ -5,7 +5,7 @@ import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/authRoutes';
-
+import orgRoutes from "./routes/orgRoutes"
 //import { errorHandler } from './middleware/errorHandler';
 //import { logging } from './middleware/logging';
 
@@ -48,7 +48,7 @@ app.get('/health', (req, res) => {
 
 // API routes will be added here
  app.use('/api/auth',limiter, authRoutes);
-// app.use('/api/organizations', organizationRoutes);
+app.use('/api/organizations', orgRoutes);
 // app.use('/api/employees', employeeRoutes);
 // app.use('/api/analytics', analyticsRoutes);
 

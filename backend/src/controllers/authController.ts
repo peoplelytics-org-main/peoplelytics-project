@@ -107,6 +107,7 @@ export const loginUser = async (req: Request, res: Response) => {
     });
     res.status(200).json({
       message: "Login successful",
+      token,
       user: {
         id: user._id,
         username: user.username,
@@ -133,14 +134,39 @@ export const logoutUser = (req: Request, res: Response) => {
     // but with an empty string and a past expiry date.
     res.cookie("token", {
       httpOnly: true,
-      expires: new Date(0), // Set expiry to a date in the past
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: false,
+      sameSite: "lax",
     });
 
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Logout Error:", error);
     res.status(500).json({ message: "Server error during logout" });
+  }
+};
+
+export const getCurrentUser = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) return res.status(401).json({ message: "Not authenticated" });
+
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
+    const user = await User.findById(decoded.id);
+
+    if (!user) return res.status(401).json({ message: "User not found" });
+
+    // ✅ Wrap the response in a "user" object to match frontend expectations
+    res.json({
+      user: {
+        id: user._id,
+        username: user.username,
+        role: user.role,
+        organizationId: user.organizationId,
+        email: user.profile.email,
+        preferences: user.preferences,
+      }
+    });
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
   }
 };

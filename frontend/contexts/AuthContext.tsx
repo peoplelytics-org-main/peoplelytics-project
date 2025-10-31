@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!response.ok) throw new Error();
     
         const data = await response.json();
-        setCurrentUser(data.user);
+        setCurrentUser(data.user||null);
       } catch (_) {
         setCurrentUser(null);
       } finally {
@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return (
         <AuthContext.Provider value={value}>
-            {!isLoading ? children : null}
+            {children}
         </AuthContext.Provider>
     );
 };

@@ -492,32 +492,87 @@ const UserManagementPage: React.FC = () => {
         setIsUserModalOpen(true);
     };
 
-    const handleOrgSubmit = (orgData: { name: string, duration?: number, subscriptionEndDate?: string }) => {
-        if (editingOrg) {
-            setOrganizations(orgs => orgs.map(o => o.id === editingOrg.id ? { 
-                ...o, 
-                name: orgData.name,
-                subscriptionEndDate: orgData.subscriptionEndDate || o.subscriptionEndDate 
-            } : o));
-        } else {
-            const startDate = new Date();
-            const endDate = new Date();
-            endDate.setMonth(startDate.getMonth() + (orgData.duration || 6));
-            const formatDate = (date: Date) => date.toISOString().split('T')[0];
+    // const handleOrgSubmit = (orgData: { name: string, duration?: number, subscriptionEndDate?: string }) => {
+    //     if (editingOrg) {
+    //         setOrganizations(orgs => orgs.map(o => o.id === editingOrg.id ? { 
+    //             ...o, 
+    //             name: orgData.name,
+    //             subscriptionEndDate: orgData.subscriptionEndDate || o.subscriptionEndDate 
+    //         } : o));
+    //     } else {
+    //         const startDate = new Date();
+    //         const endDate = new Date();
+    //         endDate.setMonth(startDate.getMonth() + (orgData.duration || 6));
+    //         const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
-            const newOrg: Organization = {
-                id: `org_${Date.now()}`,
-                name: orgData.name,
-                subscriptionStartDate: formatDate(startDate),
-                subscriptionEndDate: formatDate(endDate),
-                status: 'Active',
-                package: 'Basic',
-                employeeCount: 0,
-            };
-            setOrganizations(orgs => [...orgs, newOrg]);
+    //         const newOrg: Organization = {
+    //             id: `org_${Date.now()}`,
+    //             name: orgData.name,
+    //             subscriptionStartDate: formatDate(startDate),
+    //             subscriptionEndDate: formatDate(endDate),
+    //             status: 'Active',
+    //             package: 'Basic',
+    //             employeeCount: 0,
+    //         };
+    //         setOrganizations(orgs => [...orgs, newOrg]);
+    //     }
+    //     setIsOrgModalOpen(false);
+    // };
+
+    const handleOrgSubmit = async (orgData: { name: string, duration?: number, subscriptionEndDate?: string }) => {
+        if (editingOrg) {
+            // local update logic (you can keep this as is)
+            setOrganizations(orgs =>
+                orgs.map(o =>
+                    o.id === editingOrg.id
+                        ? {
+                            ...o,
+                            name: orgData.name,
+                            subscriptionEndDate: orgData.subscriptionEndDate || o.subscriptionEndDate,
+                        }
+                        : o
+                )
+            );
+        } else {
+            try {
+                const response = await fetch("http://localhost:5000/api/organizations/add-organization", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(orgData),
+                });
+    
+                const data = await response.json();
+    
+                if (!response.ok) throw new Error(data.message || "Failed to create organization");
+    
+                // Optional: you can add the new org locally too
+                const startDate = new Date();
+                const endDate = new Date();
+                endDate.setMonth(startDate.getMonth() + (orgData.duration || 6));
+    
+                const formatDate = (date: Date) => date.toISOString().split("T")[0];
+    
+                const newOrg: Organization = {
+                    id: `org_${Date.now()}`,
+                    name: orgData.name,
+                    subscriptionStartDate: formatDate(startDate),
+                    subscriptionEndDate: formatDate(endDate),
+                    status: "Active",
+                    package: "Basic",
+                    employeeCount: 0,
+                };
+    
+                setOrganizations(orgs => [...orgs, newOrg]);
+                alert("✅ Organization created successfully!");
+            } catch (error: any) {
+                console.error(error);
+                alert("❌ " + (error.message || "Something went wrong"));
+            }
         }
+    
         setIsOrgModalOpen(false);
     };
+    
 
     const handleUserSubmit = (userData: User) => {
         if (editingUser && editingUser.id) {
