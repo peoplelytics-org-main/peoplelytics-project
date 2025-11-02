@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import type { Organization, User, UserRole, PackageName, AppPackage } from '../types';
 import Card, { CardHeader, CardTitle, CardContent, CardDescription } from '../components/ui/Card';
@@ -95,6 +95,8 @@ const SuperAdminView: React.FC<SuperAdminViewProps> = ({
             .filter((org): org is Organization & { displayUsers: User[] } => org !== null);
 
     }, [searchTerm, organizations, users]);
+
+    
 
     return (
         <div className="space-y-4">
@@ -243,7 +245,8 @@ const OrgAdminView: React.FC<OrgAdminViewProps> = ({
 
 interface PackageManagementViewProps {
     organizations: Organization[];
-    setOrganizations: React.Dispatch<React.SetStateAction<Organization[]>>;
+    //setOrganizations: React.Dispatch<React.SetStateAction<Organization[]>>;
+    handlePackageChange: (orgId: string, newPackage: PackageName) => void;
     handleStatusToggle: (orgId: string, currentStatus: 'Active' | 'Inactive') => void;
     handleEmployeeCountChange: (orgId: string, count: string) => void;
 }
@@ -254,11 +257,35 @@ const PackageManagementView: React.FC<PackageManagementViewProps> = ({
     handleStatusToggle,
     handleEmployeeCountChange,
 }) => {
-    const handlePackageChange = (orgId: string, newPackage: PackageName) => {
-        setOrganizations(prevOrgs => 
-            prevOrgs.map(org => org.id === orgId ? { ...org, package: newPackage } : org)
-        );
-    };
+    // const handlePackageChange = (orgId: string, newPackage: PackageName) => {
+    //     setOrganizations(prevOrgs => 
+    //         prevOrgs.map(org => org.id === orgId ? { ...org, package: newPackage } : org)
+    //     );
+    // };
+
+    const handlePackageChange = async (orgId: string, newPackage: PackageName) => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ package: newPackage })
+          });
+    
+          if (response.ok) {
+            setOrganizations(prevOrgs => 
+              prevOrgs.map(org => org.id === orgId ? { ...org, package: newPackage } : org)
+            );
+            // Alert is optional, might be too noisy for a dropdown
+            console.log(`✅ Package updated for ${orgId}`);
+          } else {
+            const data = await response.json();
+            throw new Error(data.message || 'Failed to update package');
+          }
+        } catch (error: any) {
+          console.error('Error updating package:', error);
+          alert('❌ ' + (error.message || 'Something went wrong'));
+        }
+      };
 
     return (
         <Card>
@@ -519,59 +546,118 @@ const UserManagementPage: React.FC = () => {
     //     setIsOrgModalOpen(false);
     // };
 
+    useEffect(() => {
+        const fetchOrganizations = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/organizations',{
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Map backend data to your frontend Organization type
+                    const mappedOrgs = data.data.map((org: any) => ({
+                        id: org.orgId, // or org.orgId
+                        name: org.name,
+                        subscriptionStartDate: org.subscriptionStartDate.split('T')[0],
+                        subscriptionEndDate: org.subscriptionEndDate.split('T')[0],
+                        status: org.status,
+                        package: org.package,
+                        employeeCount: org.employeeCount || 0,
+                    }));
+                    setOrganizations(mappedOrgs);
+                }
+            } catch (error) {
+                console.error('Failed to fetch organizations:', error);
+            }
+        };
+
+        if (currentUser?.role === 'Super Admin') {
+            fetchOrganizations();
+        }
+    }, [currentUser, setOrganizations]);
+
     const handleOrgSubmit = async (orgData: { name: string, duration?: number, subscriptionEndDate?: string }) => {
         if (editingOrg) {
-            // local update logic (you can keep this as is)
-            setOrganizations(orgs =>
-                orgs.map(o =>
-                    o.id === editingOrg.id
-                        ? {
-                            ...o,
-                            name: orgData.name,
-                            subscriptionEndDate: orgData.subscriptionEndDate || o.subscriptionEndDate,
-                        }
-                        : o
-                )
-            );
-        } else {
-            try {
-                const response = await fetch("http://localhost:5000/api/organizations/add-organization", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(orgData),
-                });
+          // --- START REFACTOR ---
+          // This block now saves the edit to the backend
+          try {
+            const payload = {
+              name: orgData.name,
+              subscriptionEndDate: orgData.subscriptionEndDate,
+            };
     
-                const data = await response.json();
+            const response = await fetch(`http://localhost:5000/api/organizations/${editingOrg.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
     
-                if (!response.ok) throw new Error(data.message || "Failed to create organization");
+            const data = await response.json();
     
-                // Optional: you can add the new org locally too
-                const startDate = new Date();
-                const endDate = new Date();
-                endDate.setMonth(startDate.getMonth() + (orgData.duration || 6));
-    
-                const formatDate = (date: Date) => date.toISOString().split("T")[0];
-    
-                const newOrg: Organization = {
-                    id: `org_${Date.now()}`,
-                    name: orgData.name,
-                    subscriptionStartDate: formatDate(startDate),
-                    subscriptionEndDate: formatDate(endDate),
-                    status: "Active",
-                    package: "Basic",
-                    employeeCount: 0,
-                };
-    
-                setOrganizations(orgs => [...orgs, newOrg]);
-                alert("✅ Organization created successfully!");
-            } catch (error: any) {
-                console.error(error);
-                alert("❌ " + (error.message || "Something went wrong"));
+            if (!response.ok) {
+              throw new Error(data.message || "Failed to update organization");
             }
+            
+            // Update local state *after* successful backend call
+            // It's best to use the updated data returned from the server
+            setOrganizations(orgs =>
+              orgs.map(o =>
+                o.id === editingOrg.id
+                  // Assuming data.data is the updated organization object
+                  ? { 
+                      ...o, 
+                      name: data.data.name, 
+                      subscriptionEndDate: data.data.subscriptionEndDate.split('T')[0] 
+                    }
+                  : o
+              )
+            );
+            alert("✅ Organization updated successfully!");
+    
+          } catch (error: any) {
+            console.error('Error updating organization:', error);
+            alert("❌ " + (error.message || "Something went wrong"));
+          }
+          // --- END REFACTOR ---
+    
+        } else {
+          // This is your existing "add new organization" logic, which is correct.
+          try {
+            const response = await fetch("http://localhost:5000/api/organizations/add-organization", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(orgData),
+            });
+    
+            const data = await response.json();
+    
+            if (!response.ok) throw new Error(data.message || "Failed to create organization");
+    
+            // REFACTOR: Use the data returned from the backend to set the new org
+            // This ensures you have the correct orgId created by the server
+            const backendOrg = data.data;
+            const newOrg: Organization = {
+                id: backendOrg.orgId, // Use the real orgId
+                name: backendOrg.name,
+                subscriptionStartDate: backendOrg.subscriptionStartDate.split('T')[0],
+                subscriptionEndDate: backendOrg.subscriptionEndDate.split('T')[0],
+                status: backendOrg.status,
+                package: backendOrg.package,
+                employeeCount: backendOrg.employeeCount || 0,
+            };
+    
+            setOrganizations(orgs => [...orgs, newOrg]);
+            alert("✅ Organization created successfully!");
+          } catch (error: any) {
+            console.error(error);
+            alert("❌ " + (error.message || "Something went wrong"));
+          }
         }
     
         setIsOrgModalOpen(false);
-    };
+      };
     
 
     const handleUserSubmit = (userData: User) => {
@@ -593,10 +679,29 @@ const UserManagementPage: React.FC = () => {
         setIsUserModalOpen(false);
     };
 
-    const deleteOrg = (orgId: string) => {
+    const deleteOrg = async (orgId: string) => {
         if(window.confirm('Are you sure you want to delete this organization and all its users? This cannot be undone.')) {
-            setOrganizations(orgs => orgs.filter(o => o.id !== orgId));
-            setUsers(usrs => usrs.filter(u => u.organizationId !== orgId));
+            try {
+                const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/hard`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confirm: 'DELETE' })
+                });
+                console.log(orgId);
+    
+                const data = await response.json();
+    
+                if (data.success) {
+                    setOrganizations(orgs => orgs.filter(o => o.id !== orgId));
+                    setUsers(usrs => usrs.filter(u => u.organizationId !== orgId));
+                    alert('✅ Organization deleted successfully!');
+                } else {
+                    alert('❌ ' + (data.message || 'Failed to delete organization'));
+                }
+            } catch (error: any) {
+                console.error(error);
+                alert('❌ Error deleting organization');
+            }
         }
     };
     
@@ -617,55 +722,128 @@ const UserManagementPage: React.FC = () => {
         setReactivationState({ orgId: null, newEndDate: '' });
     };
     
-    const reactivateOrg = (orgId: string, newEndDate: string) => {
+    const reactivateOrg = async (orgId: string, newEndDate: string) => {
         if (!newEndDate) return;
-        setOrganizations(orgs => orgs.map(o => {
-            if (o.id === orgId) {
+        
+        try {
+            const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/activate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+    
+            // Also update the subscription end date
+            const updateResponse = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    subscriptionEndDate: newEndDate,
+                    subscriptionStartDate: new Date().toISOString().split('T')[0]
+                })
+            });
+    
+            if (response.ok && updateResponse.ok) {
                 const startDate = new Date();
                 const formatDate = (date: Date) => date.toISOString().split('T')[0];
-                return {
-                    ...o,
-                    status: 'Active',
-                    subscriptionStartDate: formatDate(startDate),
-                    subscriptionEndDate: newEndDate,
-                };
+                
+                setOrganizations(orgs => orgs.map(o => {
+                    if (o.id === orgId) {
+                        return {
+                            ...o,
+                            status: 'Active',
+                            subscriptionStartDate: formatDate(startDate),
+                            subscriptionEndDate: newEndDate,
+                        };
+                    }
+                    return o;
+                }));
+                cancelReactivation();
+                alert('✅ Organization reactivated successfully!');
             }
-            return o;
-        }));
-        cancelReactivation();
+        } catch (error) {
+            console.error('Error reactivating organization:', error);
+            alert('❌ Failed to reactivate organization');
+        }
     };
 
-    const handleStatusToggle = (orgId: string, currentStatus: 'Active' | 'Inactive') => {
+    
+
+    const handleStatusToggle = async (orgId: string, currentStatus: 'Active' | 'Inactive') => {
         if (currentStatus === 'Active') {
             if (window.confirm(`Are you sure you want to DEACTIVATE this organization? They will lose all access.`)) {
-                setOrganizations(prev => prev.map(o => o.id === orgId ? { ...o, status: 'Inactive' } : o));
+                try {
+                    const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/deactivate`, {
+                        method: 'PATCH',
+                    });
+    
+                    if (response.ok) {
+                        setOrganizations(prev => prev.map(o => o.id === orgId ? { ...o, status: 'Inactive' } : o));
+                        alert('✅ Organization deactivated successfully!');
+                    }
+                } catch (error) {
+                    console.error('Error deactivating organization:', error);
+                    alert('❌ Failed to deactivate organization');
+                }
             }
-        } else { // Inactive
+        } else {
             if (window.confirm(`Reactivating this organization will set a new 6-month subscription starting today. Continue?`)) {
-                const today = new Date();
-                const sixMonthsFromNow = new Date();
-                sixMonthsFromNow.setMonth(today.getMonth() + 6);
-                const formatDate = (date: Date) => date.toISOString().split('T')[0];
-
-                setOrganizations(prev => prev.map(o => 
-                    o.id === orgId 
-                    ? { 
-                        ...o, 
-                        status: 'Active',
-                        subscriptionStartDate: formatDate(today),
-                        subscriptionEndDate: formatDate(sixMonthsFromNow)
-                      } 
-                    : o
-                ));
+                try {
+                    const today = new Date();
+                    const sixMonthsFromNow = new Date();
+                    sixMonthsFromNow.setMonth(today.getMonth() + 6);
+                    const formatDate = (date: Date) => date.toISOString().split('T')[0];
+    
+                    const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/activate`, {
+                        method: 'PATCH',
+                    });
+    
+                    const updateResponse = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            subscriptionStartDate: formatDate(today),
+                            subscriptionEndDate: formatDate(sixMonthsFromNow)
+                        })
+                    });
+    
+                    if (response.ok && updateResponse.ok) {
+                        setOrganizations(prev => prev.map(o => 
+                            o.id === orgId 
+                            ? { 
+                                ...o, 
+                                status: 'Active',
+                                subscriptionStartDate: formatDate(today),
+                                subscriptionEndDate: formatDate(sixMonthsFromNow)
+                              } 
+                            : o
+                        ));
+                        alert('✅ Organization reactivated successfully!');
+                    }
+                } catch (error) {
+                    console.error('Error reactivating organization:', error);
+                    alert('❌ Failed to reactivate organization');
+                }
             }
         }
     };
 
-    const handleEmployeeCountChange = (orgId: string, count: string) => {
+    const handleEmployeeCountChange = async (orgId: string, count: string) => {
         const numCount = parseInt(count, 10);
-        setOrganizations(prevOrgs => 
-            prevOrgs.map(org => org.id === orgId ? { ...org, employeeCount: isNaN(numCount) ? undefined : numCount } : org)
-        );
+        
+        try {
+            const response = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ employeeCount: isNaN(numCount) ? 0 : numCount })
+            });
+    
+            if (response.ok) {
+                setOrganizations(prevOrgs => 
+                    prevOrgs.map(org => org.id === orgId ? { ...org, employeeCount: isNaN(numCount) ? undefined : numCount } : org)
+                );
+            }
+        } catch (error) {
+            console.error('Error updating employee count:', error);
+        }
     };
 
     return (
@@ -978,3 +1156,7 @@ const UserFormModal: React.FC<{user: User | null, allOrgs: Organization[], allUs
 };
 
 export default UserManagementPage;
+
+// function useEffect(arg0: () => void, arg1: any[]) {
+//     throw new Error('Function not implemented.');
+// }

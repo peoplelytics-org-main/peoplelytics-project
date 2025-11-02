@@ -51,8 +51,6 @@ export const addOrganization = async (orgData: any) => {
     status: orgData.status || "Active",
     package: orgData.package || "Basic",
     employeeCount: orgData.employeeCount || 0,
-    settings: orgData.settings || {},
-    features: orgData.features || {},
   });
 
   console.log(`✅ Organization "${newOrg.name}" added successfully`);

@@ -6,7 +6,7 @@ export interface IOrganization extends Document {
   subscriptionStartDate: Date;
   subscriptionEndDate: Date;
   status: 'Active' | 'Inactive';
-  package: 'Basic' | 'Intermediate' | 'Pro' | 'Enterprise';
+  package: 'Basic' |'Pro' | 'Enterprise';
   employeeCount?: number;
   createdAt: Date;
   updatedAt: Date;
@@ -56,7 +56,7 @@ const OrganizationSchema = new Schema<IOrganization>({
   },
   package: {
     type: String,
-    enum: ['Basic', 'Intermediate', 'Pro', 'Enterprise'],
+    enum: ['Basic', 'Pro', 'Enterprise'],
     required: true
   },
   employeeCount: {

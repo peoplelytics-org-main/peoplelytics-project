@@ -52,7 +52,7 @@ export const getOrganizationDatabase = (orgId: string): mongoose.Connection => {
   
   // Create a new connection for the organization database
   const orgConnection = mongoose.createConnection(
-    `${MONGODB_URI.replace('/peoplelytics', '')}/${orgDbName}`,
+    `${MONGODB_URI.replace('/master_db', '')}/${orgDbName}`,
     MONGODB_OPTIONS
   );
 

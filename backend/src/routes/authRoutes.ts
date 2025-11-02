@@ -1,6 +1,6 @@
 import express from 'express';
 import { getCurrentUser, loginUser, logoutUser } from '../controllers/authController'; // Adjust path
-import { protect } from '@/middleware/authMiddleware';
+
 // Import middleware if you add a 'get profile' route
 // import { protect } from '../middleware/authMiddleware'; 
 

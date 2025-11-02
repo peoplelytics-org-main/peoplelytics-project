@@ -13,7 +13,8 @@ export const getOrgConnection = (orgName: string) => {
     throw new Error('MONGODB_URI is not defined');
   }
 
-  const orgUri = `${uri}/org_${orgName}_db`;
+  
+  const orgUri = `${uri.replace("/master_db","")}/org_${orgName}_db`;
   const conn = mongoose.createConnection(orgUri);
 
   connections[orgName] = conn;
