@@ -2,6 +2,7 @@ import express from 'express';
 import {addOrganization} from "../../docs/database/superAdmin"
 import DatabaseService from '../services/tenant/databaseService';
 import { logger } from '@/utils/helpers/logger';
+import {addUserToOrganization, deleteUserFromOrganization, getAllUsersFromOrganization, getUserById, updateUserInOrganization} from "../controllers/addUserToOrganization"
 import { deleteOrganization, getAllOrganizations, getOrganizationById, listOrganizationDatabases, restoreOrganization, softDeleteOrganization, updateOrganization } from '@/controllers/orgController';
 
 const router = express.Router();
@@ -67,6 +68,13 @@ router.patch('/:orgId/activate', restoreOrganization);
 // List all organization databases
 router.get('/databases/list', listOrganizationDatabases);
 router.get('/databases/all', listOrganizationDatabases);
+
+router.post("/:orgId/add-user",addUserToOrganization );
+
+router.get("/:orgId/allusers", getAllUsersFromOrganization);
+router.get("/:orgId/users/:userId", getUserById);
+router.put("/:orgId/users/:userId", updateUserInOrganization);
+router.delete("/:orgId/delete-user/:userId", deleteUserFromOrganization);
 
 
 export default router;

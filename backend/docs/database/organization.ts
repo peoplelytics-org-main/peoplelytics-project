@@ -3,9 +3,9 @@ import { getOrgConnection } from './orgConnection';
 
 // Define schemas once
 const userSchema = new mongoose.Schema({
-  name: String,
-  password: String,
-  role: String
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, required: true },
 });
 
 const attendanceSchema = new mongoose.Schema({
@@ -35,8 +35,8 @@ const leaveSchema = new mongoose.Schema({
 });
 
 // Return all models for one org
-export const getOrgModels = (orgName: string) => {
-  const conn = getOrgConnection(orgName);
+export const getOrgModels = async(orgName: string) => {
+  const conn = await getOrgConnection(orgName);
 
   return {
     User: conn.model('Users', userSchema),

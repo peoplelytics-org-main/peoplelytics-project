@@ -36,7 +36,7 @@ interface OrgAdminViewProps {
     setSearchTerm: (term: string) => void;
     users: User[];
     openUserModal: (user: User | null, orgId?: string) => void;
-    deleteUser: (userId: string) => void;
+    deleteUser: (organizationId:string,userId: string) => void;
 }
 
 const getStatusBadgeClasses = (status: 'Active' | 'Inactive' | string) => {
@@ -546,6 +546,45 @@ const UserManagementPage: React.FC = () => {
     //     setIsOrgModalOpen(false);
     // };
 
+    useEffect(()=>{
+        const fetchAllUsers = async (orgId: string) => {
+            try {
+                const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/allusers`);
+                const data = await response.json();
+                if (data.success) setUsers(data.data);
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
+        
+        };
+        
+    })
+
+    const fetchUsers = async (orgId: string) => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/allusers`);
+          const data = await response.json();
+          if (data.success) {
+            setUsers(prev => {
+              // remove old users of this org and add fresh ones
+              const otherUsers = prev.filter(u => u.organizationId !== orgId);
+              return [...otherUsers, ...data.data.map((u: any) => ({
+                id: u._id,
+                username: u.username,
+                role: u.role,
+                organizationId: orgId,
+              }))];
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching users:', error);
+        }
+      };
+
+      useEffect(() => {
+        organizations.forEach(org => fetchUsers(org.id));
+      }, [organizations]);
+
     useEffect(() => {
         const fetchOrganizations = async () => {
             try {
@@ -632,12 +671,12 @@ const UserManagementPage: React.FC = () => {
             });
     
             const data = await response.json();
-    
+            console.log("Backend response:", data);
             if (!response.ok) throw new Error(data.message || "Failed to create organization");
     
             // REFACTOR: Use the data returned from the backend to set the new org
             // This ensures you have the correct orgId created by the server
-            const backendOrg = data.data;
+            const backendOrg = data.org;
             const newOrg: Organization = {
                 id: backendOrg.orgId, // Use the real orgId
                 name: backendOrg.name,
@@ -660,23 +699,48 @@ const UserManagementPage: React.FC = () => {
       };
     
 
-    const handleUserSubmit = (userData: User) => {
-        if (editingUser && editingUser.id) {
-            setUsers(usrs => usrs.map(u => {
-                if (u.id === userData.id) {
-                    const finalUserData = { ...userData };
-                    if (!finalUserData.password) {
-                        finalUserData.password = u.password;
-                    }
-                    return finalUserData;
+      const handleUserSubmit = async (userData: User) => {
+        try {
+            const orgId = userData.organizationId;
+    
+            if (editingUser && editingUser.id) {
+                // Update existing user
+                const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/users/${userData.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData),
+                });
+                const data = await response.json();
+    
+                if (data.success) {
+                    setUsers(usrs => usrs.map(u => u.id === userData.id ? { ...u, ...data.data } : u));
+                    alert('✅ User updated successfully!');
+                } else {
+                    alert('❌ ' + (data.message || 'Failed to update user'));
                 }
-                return u;
-            }));
-        } else {
-            const org = organizations.find(o => o.id === userData.organizationId);
-            setUsers(usrs => [...usrs, { ...userData, id: `user_${Date.now()}`, organizationName: org?.name }]);
+            } else {
+                // Add new user
+                const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/add-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData),
+                });
+                const data = await response.json();
+    
+                if (data.success) {
+                    const org = organizations.find(o => o.id === orgId);
+                    setUsers(usrs => [...usrs, { ...data.data, organizationName: org?.name, organizationId: orgId }]);
+                    alert('✅ User added successfully!');
+                } else {
+                    alert('❌ ' + (data.message || 'Failed to add user'));
+                }
+            }
+    
+            setIsUserModalOpen(false);
+        } catch (error: any) {
+            console.error('Error submitting user:', error);
+            alert('❌ Error submitting user');
         }
-        setIsUserModalOpen(false);
     };
 
     const deleteOrg = async (orgId: string) => {
@@ -705,11 +769,29 @@ const UserManagementPage: React.FC = () => {
         }
     };
     
-    const deleteUser = (userId: string) => {
-         if(window.confirm('Are you sure you want to delete this user?')) {
-            setUsers(usrs => usrs.filter(u => u.id !== userId));
-         }
+    const deleteUser = async (organizationId: string, userId: string) => {
+        if (window.confirm('Are you sure you want to delete this user?')) {
+            try {
+                const response = await fetch(`http://localhost:5000/api/organizations/${organizationId}/delete-user/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                console.log({"OrgId":organizationId, "UserId":userId})
+                const data = await response.json();
+    
+                if (data.success) {
+                    setUsers(usrs => usrs.filter(u => u.id !== userId));
+                    alert('✅ User deleted successfully!');
+                } else {
+                    alert('❌ ' + (data.message || 'Failed to delete user'));
+                }
+            } catch (error: any) {
+                console.error('Error deleting user:', error);
+                alert('❌ Failed to delete user');
+            }
+        }
     };
+    
 
     const handleReactivationToggle = (org: Organization) => {
         const today = new Date();
@@ -952,7 +1034,7 @@ const UserList: React.FC<{users: User[], openUserModal: (u: User) => void, delet
                         <td className="py-2 px-4 text-text-secondary">{user.role}</td>
                         <td className="py-2 px-4 text-right flex justify-end gap-2">
                             <Button size="sm" variant="secondary" onClick={() => openUserModal(user)}><Edit className="h-3 w-3"/></Button>
-                            <Button size="sm" variant="ghost" onClick={() => deleteUser(user.id)}><Trash2 className="h-3 w-3 text-red-400"/></Button>
+                            <Button size="sm" variant="ghost" onClick={() => deleteUser(user.organizationId,user.id)}><Trash2 className="h-3 w-3 text-red-400"/></Button>
                         </td>
                     </tr>
                 ))}
