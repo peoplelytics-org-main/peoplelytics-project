@@ -9,7 +9,7 @@ import Input from '../components/ui/Input';
 const LoginPage: React.FC = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
-    const [email, setemail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -19,7 +19,7 @@ const LoginPage: React.FC = () => {
         setError('');
         setIsLoading(true);
         try {
-            await login(email, password);
+            await login(username, password);
             navigate('/app/home');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Invalid credentials.');
@@ -42,7 +42,7 @@ const LoginPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
-                        <Input label="Email" id="username" type="email" value={email} onChange={e => setemail(e.target.value)} placeholder="superadmin@peoplelytics.com" required />
+                        <Input label="Username" id="username" type="email" value={username} onChange={e => setUsername(e.target.value)} placeholder="superadmin@peoplelytics.com" required />
                         <Input label="Password" id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
                         
                         {error && <p className="text-sm text-red-400">{error}</p>}
@@ -66,7 +66,6 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
-
 
 // <h4 className="font-semibold text-text-primary mb-1">Demo Users</h4>
 // <p>Try logging in as:</p>

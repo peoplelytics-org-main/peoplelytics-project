@@ -4,7 +4,7 @@ import type { Employee, Currency, SkillLevel } from '../../types';
 import Card, { CardHeader, CardTitle, CardContent } from '../ui/Card';
 import Gauge from '../ui/Gauge';
 import StatusBadge from '../ui/StatusBadge';
-import { calculateTenure, calculateFlightRiskScore, calculateImpactScore } from '../../services/hrCalculations';
+import { calculateTenure, calculateFlightRiskScore, calculateImpactScore } from '../../services/calculations';
 import { Award, Briefcase, Calendar, CheckCircle, Clock, TrendingUp, UserCheck, DollarSign, AlertTriangle, MessageSquare, BrainCircuit } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 

@@ -6,6 +6,7 @@ export type PackageName = 'Basic' | 'Intermediate' | 'Pro' | 'Enterprise';
 export interface AppPackage {
   name: PackageName;
   headcountLimit: number;
+  pricePerEmployee?: number;
   roleLimits?: {
     'Org Admin'?: number;
     'HR Analyst'?: number;
@@ -22,7 +23,20 @@ export interface AppPackage {
     hasKeyDriverAnalysis?: boolean;
     hasSuccessionPlanning?: boolean;
     hasUserManagementAccess?: boolean;
+    hasEmployeeMetrics?: boolean;
+    hasHRMetrics?: boolean;
   };
+}
+
+export type ControllableFeature = keyof AppPackage['features'];
+
+export interface RolePermissions {
+  isReadOnly?: boolean;
+  [key: string]: boolean | undefined; // Allow for feature flags like hasPredictiveAnalytics: true/false
+}
+
+export type Permissions = {
+  [key in UserRole]?: RolePermissions;
 }
 
 export interface Organization {

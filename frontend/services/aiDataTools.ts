@@ -1,6 +1,6 @@
-
 // services/aiDataTools.ts
 import { FunctionDeclaration, Part, Type } from '@google/genai';
+// FIX: Corrected import path for calculation functions.
 import { 
     getAnnualTurnoverRateFromData, 
     getAverageTenure, 
@@ -161,164 +161,176 @@ export const toolImplementations = {
         ? context.employees.filter(e => e.department.toLowerCase() === department.toLowerCase())
         : context.employees;
     const relevantEmployeeIds = new Set(relevantEmployees.map(e => e.id));
-
     const filteredAttendance = context.attendance.filter(att => relevantEmployeeIds.has(att.employeeId));
-    
-    if (filteredAttendance.length === 0) {
-        return { rate: 0 };
-    }
 
     let rate = 0;
-    if (type === 'unscheduled') {
-        rate = getUnscheduledAbsenceRate(filteredAttendance);
-    } else {
+    if (type === 'overall') {
         rate = getOverallAbsenceRate(filteredAttendance);
+    } else {
+        rate = getUnscheduledAbsenceRate(filteredAttendance);
     }
-    return { rate };
+    return { absenceRate: rate };
   },
-  getRecruitmentFunnelSummary: (context: AIDataContext, args: {}) => {
-    const totals = getRecruitmentFunnelTotals(context.recruitmentFunnels);
-    return totals;
-  },
+  getRecruitmentFunnelSummary: (context: AIDataContext) => {
+    return getRecruitmentFunnelTotals(context.recruitmentFunnels);
+  }
 };
 
-// This defines the schema of the tools for the Gemini API.
-export const functionDeclarations: FunctionDeclaration[] = [
-  {
+// FIX: Added function declarations for AI tools.
+const getHeadcountDeclaration: FunctionDeclaration = {
     name: 'getHeadcount',
-    description: 'Get the number of active employees, optionally filtered by department and/or gender.',
+    description: 'Get the number of active employees, optionally filtered by department or gender.',
     parameters: {
       type: Type.OBJECT,
       properties: {
-        department: { type: Type.STRING, description: 'The department to filter by (e.g., "Development").' },
-        gender: { type: Type.STRING, description: 'The gender to filter by.', enum: ['Male', 'Female', 'Other'] },
-      },
-    },
-  },
-  {
+        department: { type: Type.STRING, description: 'The department to filter by (e.g., "Engineering", "Sales").' },
+        gender: { type: Type.STRING, enum: ['Male', 'Female', 'Other'], description: 'The gender to filter by.' }
+      }
+    }
+};
+
+const getTurnoverRateDeclaration: FunctionDeclaration = {
     name: 'getTurnoverRate',
-    description: 'Get the annual turnover rate for the last 12 months, optionally filtered by department.',
-    parameters: {
-       type: Type.OBJECT,
-      properties: {
-        department: { type: Type.STRING, description: 'The department to filter by.' },
-      },
-    }
-  },
-  {
-    name: 'getAverageMetric',
-    description: 'Get the average value for a specific metric like tenure or engagement, optionally filtered by department.',
-    parameters: {
-       type: Type.OBJECT,
-       properties: {
-         metric: { type: Type.STRING, enum: ['tenure', 'engagement'], description: 'The metric to calculate the average for.'},
-         department: { type: Type.STRING, description: 'The department to filter by.'}
-       },
-       required: ['metric']
-    }
-  },
-  {
-    name: 'getNewHirePerformance',
-    description: 'Get the average performance rating for employees hired in the last N months.',
+    description: 'Calculates the annualized turnover rate for the last 12 months, optionally filtered by department.',
     parameters: {
       type: Type.OBJECT,
       properties: {
-        months: { type: Type.NUMBER, description: 'The number of recent months to look back for new hires.'}
+        department: { type: Type.STRING, description: 'The department to filter by.' }
+      }
+    }
+};
+
+const getAverageMetricDeclaration: FunctionDeclaration = {
+    name: 'getAverageMetric',
+    description: 'Calculates the average for a given metric (tenure or engagement), optionally filtered by department.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        metric: { type: Type.STRING, enum: ['tenure', 'engagement'], description: "The metric to calculate the average for." },
+        department: { type: Type.STRING, description: 'The department to filter by.' }
+      },
+      required: ['metric']
+    }
+};
+
+const getNewHirePerformanceDeclaration: FunctionDeclaration = {
+    name: 'getNewHirePerformance',
+    description: 'Calculates the average performance rating for employees hired within a specified number of months from today.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        months: { type: Type.NUMBER, description: 'The number of months to look back for new hires.' }
       },
       required: ['months']
     }
-  },
-  {
+};
+
+const getDepartmentsByEngagementDeclaration: FunctionDeclaration = {
     name: 'getDepartmentsByEngagement',
-    description: 'Get a list of departments with the highest or lowest average engagement scores.',
+    description: 'Gets a list of departments sorted by their average employee engagement score.',
     parameters: {
       type: Type.OBJECT,
       properties: {
-        order: { type: Type.STRING, enum: ['lowest', 'highest'], description: 'Whether to return the lowest or highest scoring departments.'},
-        count: { type: Type.NUMBER, description: 'The number of departments to return.'}
+        order: { type: Type.STRING, enum: ['lowest', 'highest'], description: "The sort order." },
+        count: { type: Type.NUMBER, description: 'The number of departments to return.' }
       },
       required: ['order', 'count']
     }
-  },
-  {
+};
+
+const getOpenPositionCountDeclaration: FunctionDeclaration = {
     name: 'getOpenPositionCount',
-    description: 'Get the number of open job positions, optionally filtered by department.',
+    description: 'Gets the number of currently open job positions, optionally filtered by department.',
+    parameters: {
+        type: Type.OBJECT,
+        properties: {
+            department: { type: Type.STRING, description: 'The department to filter by.' }
+        }
+    }
+};
+
+const getTalentRiskCountDeclaration: FunctionDeclaration = {
+    name: 'getTalentRiskCount',
+    description: 'Gets the number of active employees who fall into a specific talent risk segment, based on performance and flight risk.',
     parameters: {
       type: Type.OBJECT,
       properties: {
-        department: { type: Type.STRING, description: 'The department to filter by.'},
-      },
-    },
-  },
-  {
-    name: 'getTalentRiskCount',
-    description: "Get the number of employees in a specific segment of the Talent Risk Matrix, based on performance and flight risk categories.",
-    parameters: {
-        type: Type.OBJECT,
-        properties: {
-            performance: { type: Type.STRING, enum: ['High', 'Medium', 'Low'], description: 'The performance category.' },
-            risk: { type: Type.STRING, enum: ['High', 'Medium', 'Low'], description: 'The flight risk category.' }
-        },
-    },
-  },
-  {
+        performance: { type: Type.STRING, enum: ['High', 'Medium', 'Low'], description: 'The performance category.' },
+        risk: { type: Type.STRING, enum: ['High', 'Medium', 'Low'], description: 'The flight risk category.' }
+      }
+    }
+};
+
+const getRetentionRateDeclaration: FunctionDeclaration = {
     name: 'getRetentionRate',
-    description: "Get the employee retention rate for the last 12 months. Can be filtered by type (overall, high performers, or first-year hires) and by department.",
+    description: 'Calculates the retention rate for a specified employee segment over the last 12 months.',
     parameters: {
-        type: Type.OBJECT,
-        properties: {
-            type: { type: Type.STRING, enum: ['overall', 'high_performer', 'first_year'], description: 'The type of retention rate to calculate.' },
-            department: { type: Type.STRING, description: 'The department to filter by.' },
-        },
-        required: ['type']
+      type: Type.OBJECT,
+      properties: {
+        type: { type: Type.STRING, enum: ['overall', 'high_performer', 'first_year'], description: "The segment of employees to analyze." },
+        department: { type: Type.STRING, description: 'An optional department to filter by.' }
+      },
+      required: ['type']
     }
-  },
-  {
+};
+
+const getAbsenceRateDeclaration: FunctionDeclaration = {
     name: 'getAbsenceRate',
-    description: "Get the employee absence rate. Can be specified as 'overall' (sick & unscheduled) or just 'unscheduled', and can be filtered by department.",
+    description: 'Calculates the absence rate (either overall or just unscheduled) for a given period.',
     parameters: {
-        type: Type.OBJECT,
-        properties: {
-            type: { type: Type.STRING, enum: ['overall', 'unscheduled'], description: 'The type of absence rate to calculate.' },
-            department: { type: Type.STRING, description: 'The department to filter by.' },
-        },
-        required: ['type']
+      type: Type.OBJECT,
+      properties: {
+        type: { type: Type.STRING, enum: ['overall', 'unscheduled'], description: "The type of absence rate to calculate." },
+        department: { type: Type.STRING, description: 'An optional department to filter by.' }
+      },
+      required: ['type']
     }
-  },
-  {
+};
+
+const getRecruitmentFunnelSummaryDeclaration: FunctionDeclaration = {
     name: 'getRecruitmentFunnelSummary',
-    description: "Get a summary of the entire recruitment funnel, including the total number of candidates at each stage: shortlisted, interviewed, offers extended, offers accepted, and joined.",
+    description: 'Provides a summary of the entire recruitment funnel, totaling all candidates across all stages for all open positions.',
     parameters: {
-        type: Type.OBJECT,
-        properties: {},
-    },
-  },
+      type: Type.OBJECT,
+      properties: {}
+    }
+};
+
+// FIX: Export functionDeclarations for use in the AI Assistant.
+export const functionDeclarations: FunctionDeclaration[] = [
+    getHeadcountDeclaration,
+    getTurnoverRateDeclaration,
+    getAverageMetricDeclaration,
+    getNewHirePerformanceDeclaration,
+    getDepartmentsByEngagementDeclaration,
+    getOpenPositionCountDeclaration,
+    getTalentRiskCountDeclaration,
+    getRetentionRateDeclaration,
+    getAbsenceRateDeclaration,
+    getRecruitmentFunnelSummaryDeclaration,
 ];
 
-// The function that the main app will call
-export const executeFunctionCall = async (context: AIDataContext, functionCall: { name: string; args: any; }): Promise<Part> => {
-    const { name, args } = functionCall;
-    let result: any;
+// FIX: Export executeFunctionCall to handle AI tool requests.
+export const executeFunctionCall = async (
+  context: AIDataContext,
+  functionCall: { name: string; args: any }
+): Promise<Part> => {
+  const { name, args } = functionCall;
 
-    if (name in toolImplementations) {
-        // Find the function in our implementations object
-        const func = toolImplementations[name as keyof typeof toolImplementations];
-        try {
-            // Call the function with the provided context and arguments
-            result = func(context, args);
-        } catch (error) {
-            console.error(`Error executing tool ${name}:`, error);
-            result = { error: `An error occurred while executing the function: ${name}.` };
-        }
-    } else {
-        result = { error: `Unknown function call: ${name}` };
-    }
+  let functionResponse: any;
+  const toolImplementation = toolImplementations[name as keyof typeof toolImplementations];
 
-    // Return the result in the format the Gemini API expects for a function response
-    return {
-        functionResponse: {
-            name,
-            response: result,
-        },
-    };
+  if (toolImplementation) {
+    // @ts-ignore
+    functionResponse = toolImplementation(context, args);
+  } else {
+    functionResponse = { error: `Function ${name} not found.` };
+  }
+  
+  return {
+    functionResponse: {
+      name,
+      response: functionResponse,
+    },
+  };
 };

@@ -4,8 +4,8 @@ import { useData } from '../contexts/DataContext';
 import Button from './ui/Button';
 import Card, { CardHeader, CardTitle, CardDescription, CardContent } from './ui/Card';
 import { FileDown } from 'lucide-react';
-import { calculateFlightRiskScore, calculateImpactScore } from '../services/hrCalculations';
-import { MOCK_JOB_POSITIONS, MOCK_RECRUITMENT_FUNNEL_DATA } from '../constants';
+import { calculateFlightRiskScore, calculateImpactScore } from '../services/calculations';
+import { MOCK_JOB_POSITIONS, MOCK_RECRUITMENT_FUNNEL_DATA } from '../constants/data';
 
 const DataExport: React.FC = () => {
     const { employeeData, attendanceData } = useData();

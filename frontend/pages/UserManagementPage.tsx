@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo ,useEffect} from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import type { Organization, User, UserRole, PackageName, AppPackage } from '../types';
 import Card, { CardHeader, CardTitle, CardContent, CardDescription } from '../components/ui/Card';
@@ -95,8 +95,6 @@ const SuperAdminView: React.FC<SuperAdminViewProps> = ({
             .filter((org): org is Organization & { displayUsers: User[] } => org !== null);
 
     }, [searchTerm, organizations, users]);
-
-    
 
     return (
         <div className="space-y-4">
@@ -246,7 +244,6 @@ const OrgAdminView: React.FC<OrgAdminViewProps> = ({
 interface PackageManagementViewProps {
     organizations: Organization[];
     //setOrganizations: React.Dispatch<React.SetStateAction<Organization[]>>;
-    handlePackageChange: (orgId: string, newPackage: PackageName) => void;
     handleStatusToggle: (orgId: string, currentStatus: 'Active' | 'Inactive') => void;
     handleEmployeeCountChange: (orgId: string, count: string) => void;
 }
@@ -257,12 +254,6 @@ const PackageManagementView: React.FC<PackageManagementViewProps> = ({
     handleStatusToggle,
     handleEmployeeCountChange,
 }) => {
-    // const handlePackageChange = (orgId: string, newPackage: PackageName) => {
-    //     setOrganizations(prevOrgs => 
-    //         prevOrgs.map(org => org.id === orgId ? { ...org, package: newPackage } : org)
-    //     );
-    // };
-
     const handlePackageChange = async (orgId: string, newPackage: PackageName) => {
         try {
           const response = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
@@ -367,6 +358,7 @@ const ProgressBar: React.FC<{ value: number; max: number; label: string }> = ({ 
     );
 };
 
+// FIX: Add missing 'hasEmployeeMetrics' and 'hasHRMetrics' to the map to satisfy the type.
 const featureNameMap: { [key in keyof Required<AppPackage['features']>]: string } = {
     hasPredictiveAnalytics: 'Predictive Analytics',
     hasAIAssistant: 'AI Assistant',
@@ -378,6 +370,8 @@ const featureNameMap: { [key in keyof Required<AppPackage['features']>]: string 
     hasKeyDriverAnalysis: 'Key Driver Analysis',
     hasSuccessionPlanning: 'Succession Planning Tools',
     hasUserManagementAccess: 'User Management Module',
+    hasEmployeeMetrics: 'Employee Metrics',
+    hasHRMetrics: 'HR Metrics',
 };
 
 const PackageDetailsView: React.FC = () => {
@@ -519,47 +513,6 @@ const UserManagementPage: React.FC = () => {
         setIsUserModalOpen(true);
     };
 
-    // const handleOrgSubmit = (orgData: { name: string, duration?: number, subscriptionEndDate?: string }) => {
-    //     if (editingOrg) {
-    //         setOrganizations(orgs => orgs.map(o => o.id === editingOrg.id ? { 
-    //             ...o, 
-    //             name: orgData.name,
-    //             subscriptionEndDate: orgData.subscriptionEndDate || o.subscriptionEndDate 
-    //         } : o));
-    //     } else {
-    //         const startDate = new Date();
-    //         const endDate = new Date();
-    //         endDate.setMonth(startDate.getMonth() + (orgData.duration || 6));
-    //         const formatDate = (date: Date) => date.toISOString().split('T')[0];
-
-    //         const newOrg: Organization = {
-    //             id: `org_${Date.now()}`,
-    //             name: orgData.name,
-    //             subscriptionStartDate: formatDate(startDate),
-    //             subscriptionEndDate: formatDate(endDate),
-    //             status: 'Active',
-    //             package: 'Basic',
-    //             employeeCount: 0,
-    //         };
-    //         setOrganizations(orgs => [...orgs, newOrg]);
-    //     }
-    //     setIsOrgModalOpen(false);
-    // };
-
-    useEffect(()=>{
-        const fetchAllUsers = async (orgId: string) => {
-            try {
-                const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/allusers`);
-                const data = await response.json();
-                if (data.success) setUsers(data.data);
-            } catch (error) {
-                console.error('Error fetching users:', error);
-            }
-        
-        };
-        
-    })
-
     const fetchUsers = async (orgId: string) => {
         try {
           const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/allusers`);
@@ -584,38 +537,6 @@ const UserManagementPage: React.FC = () => {
       useEffect(() => {
         organizations.forEach(org => fetchUsers(org.id));
       }, [organizations]);
-
-    useEffect(() => {
-        const fetchOrganizations = async () => {
-            try {
-                const response = await fetch('http://localhost:5000/api/organizations',{
-                    method: 'GET',
-                    headers: { 'Content-Type': 'application/json' },
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Map backend data to your frontend Organization type
-                    const mappedOrgs = data.data.map((org: any) => ({
-                        id: org.orgId, // or org.orgId
-                        name: org.name,
-                        subscriptionStartDate: org.subscriptionStartDate.split('T')[0],
-                        subscriptionEndDate: org.subscriptionEndDate.split('T')[0],
-                        status: org.status,
-                        package: org.package,
-                        employeeCount: org.employeeCount || 0,
-                    }));
-                    setOrganizations(mappedOrgs);
-                }
-            } catch (error) {
-                console.error('Failed to fetch organizations:', error);
-            }
-        };
-
-        if (currentUser?.role === 'Super Admin') {
-            fetchOrganizations();
-        }
-    }, [currentUser, setOrganizations]);
 
     const handleOrgSubmit = async (orgData: { name: string, duration?: number, subscriptionEndDate?: string }) => {
         if (editingOrg) {
@@ -697,9 +618,40 @@ const UserManagementPage: React.FC = () => {
     
         setIsOrgModalOpen(false);
       };
-    
 
-      const handleUserSubmit = async (userData: User) => {
+      useEffect(() => {
+        const fetchOrganizations = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/organizations',{
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Map backend data to your frontend Organization type
+                    const mappedOrgs = data.data.map((org: any) => ({
+                        id: org.orgId, // or org.orgId
+                        name: org.name,
+                        subscriptionStartDate: org.subscriptionStartDate.split('T')[0],
+                        subscriptionEndDate: org.subscriptionEndDate.split('T')[0],
+                        status: org.status,
+                        package: org.package,
+                        employeeCount: org.employeeCount || 0,
+                    }));
+                    setOrganizations(mappedOrgs);
+                }
+            } catch (error) {
+                console.error('Failed to fetch organizations:', error);
+            }
+        };
+
+        if (currentUser?.role === 'Super Admin') {
+            fetchOrganizations();
+        }
+    }, [currentUser, setOrganizations]);
+
+    const handleUserSubmit = async (userData: User) => {
         try {
             const orgId = userData.organizationId;
     
@@ -791,7 +743,6 @@ const UserManagementPage: React.FC = () => {
             }
         }
     };
-    
 
     const handleReactivationToggle = (org: Organization) => {
         const today = new Date();
@@ -846,8 +797,6 @@ const UserManagementPage: React.FC = () => {
             alert('❌ Failed to reactivate organization');
         }
     };
-
-    
 
     const handleStatusToggle = async (orgId: string, currentStatus: 'Active' | 'Inactive') => {
         if (currentStatus === 'Active') {
@@ -1034,7 +983,7 @@ const UserList: React.FC<{users: User[], openUserModal: (u: User) => void, delet
                         <td className="py-2 px-4 text-text-secondary">{user.role}</td>
                         <td className="py-2 px-4 text-right flex justify-end gap-2">
                             <Button size="sm" variant="secondary" onClick={() => openUserModal(user)}><Edit className="h-3 w-3"/></Button>
-                            <Button size="sm" variant="ghost" onClick={() => deleteUser(user.organizationId,user.id)}><Trash2 className="h-3 w-3 text-red-400"/></Button>
+                            <Button size="sm" variant="ghost" onClick={() => deleteUser(user.id)}><Trash2 className="h-3 w-3 text-red-400"/></Button>
                         </td>
                     </tr>
                 ))}
@@ -1238,7 +1187,3 @@ const UserFormModal: React.FC<{user: User | null, allOrgs: Organization[], allUs
 };
 
 export default UserManagementPage;
-
-// function useEffect(arg0: () => void, arg1: any[]) {
-//     throw new Error('Function not implemented.');
-// }

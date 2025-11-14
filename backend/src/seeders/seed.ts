@@ -54,7 +54,9 @@ const defaultPreferences = {
 const seed = async () => {
   try {
     // 1. Connect to the core database
-    const dbUri = process.env.MONGO_URI + "/master_db" || "mongodb://localhost:27017/master_db";
+    const dbUri = (process.env.MONGO_URI)
+  ? process.env.MONGO_URI + "/master_db"
+  : "mongodb://localhost:27017/master_db";
     await mongoose.connect(dbUri);
     console.log('✅ Connected to DB:', dbUri);
 

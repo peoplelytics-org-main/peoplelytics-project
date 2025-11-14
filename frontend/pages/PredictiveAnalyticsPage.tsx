@@ -14,7 +14,7 @@ import BurnoutRiskModel from '../components/predictions/BurnoutRiskModel';
 type ActiveModel = 'turnover' | 'performance' | 'forecasting' | 'burnout';
 
 const PredictiveAnalyticsPage: React.FC = () => {
-    const { employeeData, attendanceData } = useData();
+    const { employeeData, displayedData, attendanceData } = useData();
     const { currentUser } = useAuth();
     const [activeModel, setActiveModel] = useState<ActiveModel>('turnover');
     
@@ -146,13 +146,13 @@ const PredictiveAnalyticsPage: React.FC = () => {
             <div className="pt-4 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                 {activeModel === 'turnover' && (
                     <>
-                        <TurnoverRiskModel employees={employeeData} />
+                        <TurnoverRiskModel employees={employeeData} employeesForAI={displayedData} />
                         <PredictionExplanationCard {...turnoverExplanation} />
                     </>
                 )}
                 {activeModel === 'performance' && (
                     <>
-                        <PerformanceForecastModel employees={employeeData} />
+                        <PerformanceForecastModel employees={employeeData} employeesForAI={displayedData} />
                         <PredictionExplanationCard {...performanceExplanation} />
                     </>
                 )}

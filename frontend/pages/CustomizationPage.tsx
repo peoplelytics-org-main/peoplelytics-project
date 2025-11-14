@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState } from 'react';
 import Card, { CardHeader, CardTitle, CardContent, CardDescription } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -9,9 +5,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useDashboardConfig, FIXED_LARGE_WIDGETS } from '../contexts/DashboardConfigContext';
 import { THEMES, AVAILABLE_WIDGETS } from '../constants';
 import Switch from '../components/ui/Switch';
-import { Palette, LayoutDashboard, Check, Sun, Moon, DollarSign, X, Settings } from 'lucide-react';
+import { Palette, LayoutDashboard, Check, Sun, Moon, DollarSign, X, Settings, Users } from 'lucide-react';
 import type { Currency, DashboardWidget } from '../types';
 import { useReportSettings } from '../contexts/ReportSettingsContext';
+import PermissionsTab from '../components/customization/PermissionsTab';
 
 const CustomizationPage: React.FC = () => {
     const { theme, setTheme, mode, setMode, currency, setCurrency } = useTheme();
@@ -47,18 +44,19 @@ const CustomizationPage: React.FC = () => {
         { id: 'appearance', label: 'App Appearance', icon: Palette },
         { id: 'localization', label: 'Localization', icon: DollarSign },
         { id: 'widgets', label: 'Dashboard Widgets', icon: LayoutDashboard },
-        { id: 'reports', label: 'Report Settings', icon: Settings }
+        { id: 'reports', label: 'Report Settings', icon: Settings },
+        { id: 'permissions', label: 'Roles & Permissions', icon: Users }
     ];
 
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
                  <div className="p-3 bg-primary-900/50 rounded-lg">
-                    <Palette className="h-8 w-8 text-primary-400"/>
+                    <Settings className="h-8 w-8 text-primary-400"/>
                  </div>
                  <div>
                     <h2 className="text-3xl font-bold tracking-tight text-text-primary">Customization</h2>
-                    <p className="text-text-secondary mt-1">Personalize your dashboard layout, theme, and report settings.</p>
+                    <p className="text-text-secondary mt-1">Personalize your dashboard layout, theme, and application settings.</p>
                  </div>
             </div>
 
@@ -255,6 +253,7 @@ const CustomizationPage: React.FC = () => {
                         </CardContent>
                     </Card>
                 )}
+                {activeTab === 'permissions' && <PermissionsTab />}
             </div>
         </div>
     );

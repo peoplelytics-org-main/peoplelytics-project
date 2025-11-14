@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Papa from 'papaparse';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -9,7 +8,6 @@ import Card, { CardContent, CardHeader, CardTitle } from './ui/Card';
 
 interface RecruitmentDataUploadProps {
   onComplete: (data: { positions: JobPosition[], funnels: RecruitmentFunnel[] }) => void;
-  // FIX: Added organizationId to props to associate uploaded data with an organization.
   organizationId: string;
 }
 
@@ -93,7 +91,6 @@ const RecruitmentDataUpload: React.FC<RecruitmentDataUploadProps> = ({ onComplet
           if (currentErrors.length > 0) {
             errors.push({ rowIndex: index + 2, errors: currentErrors, rowData: row });
           } else {
-            // FIX: Add missing organizationId to satisfy the JobPosition type.
             valids.positions.push({
               id: row.id, title: row.title, department: row.department, status: row.status, openDate: row.openDate,
               closeDate: row.closeDate || undefined, hiredEmployeeId: row.hiredEmployeeId || undefined,
@@ -101,7 +98,6 @@ const RecruitmentDataUpload: React.FC<RecruitmentDataUploadProps> = ({ onComplet
               positionType: row.positionType || 'New', budgetStatus: row.budgetStatus || 'Budgeted',
               organizationId,
             });
-            // FIX: Add missing organizationId to satisfy the RecruitmentFunnel type.
             valids.funnels.push({
               positionId: row.id, shortlisted: Number(row.shortlisted) || 0, interviewed: Number(row.interviewed) || 0,
               offersExtended: Number(row.offersExtended) || 0, offersAccepted: Number(row.offersAccepted) || 0,
@@ -156,14 +152,12 @@ const RecruitmentDataUpload: React.FC<RecruitmentDataUploadProps> = ({ onComplet
         if (validationErrors.length > 0) {
             stillErrored.push({ ...row, errors: validationErrors });
         } else {
-            // FIX: Add missing organizationId to satisfy the JobPosition type.
             newlyValid.positions.push({
                 id: row.rowData.id, title: row.rowData.title, department: row.rowData.department, status: row.rowData.status, openDate: row.rowData.openDate,
                 closeDate: row.rowData.closeDate || undefined, hiredEmployeeId: row.rowData.hiredEmployeeId || undefined, onHoldDate: row.rowData.onHoldDate || undefined,
                 heldBy: row.rowData.heldBy || undefined, positionType: row.rowData.positionType || 'New', budgetStatus: row.rowData.budgetStatus || 'Budgeted',
                 organizationId,
             });
-            // FIX: Add missing organizationId to satisfy the RecruitmentFunnel type.
             newlyValid.funnels.push({
                 positionId: row.rowData.id, shortlisted: Number(row.rowData.shortlisted) || 0, interviewed: Number(row.rowData.interviewed) || 0,
                 offersExtended: Number(row.rowData.offersExtended) || 0, offersAccepted: Number(row.rowData.offersAccepted) || 0, joined: Number(row.rowData.joined) || 0,

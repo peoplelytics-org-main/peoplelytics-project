@@ -1,7 +1,8 @@
 import React, { createContext, useState, useContext, useMemo, useCallback, useEffect } from 'react';
 import type { Employee, AttendanceRecord, JobPosition, RecruitmentFunnel, Organization, User, AppPackage } from '../types';
 import { useAuth } from './AuthContext';
-import { MOCK_EMPLOYEE_DATA, MOCK_ATTENDANCE_DATA, MOCK_JOB_POSITIONS, MOCK_RECRUITMENT_FUNNEL_DATA, MOCK_ORGANIZATIONS, MOCK_USERS, APP_PACKAGES } from '../constants';
+import { APP_PACKAGES } from '../constants';
+import { MOCK_EMPLOYEE_DATA, MOCK_ATTENDANCE_DATA, MOCK_JOB_POSITIONS, MOCK_RECRUITMENT_FUNNEL_DATA, MOCK_ORGANIZATIONS, MOCK_USERS } from '../constants/data';
 
 
 interface DataContextType {

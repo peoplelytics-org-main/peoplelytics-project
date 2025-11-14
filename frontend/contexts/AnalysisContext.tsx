@@ -1,7 +1,6 @@
-
 import React, { createContext, useState, useContext, useMemo, useEffect } from 'react';
 import type { ExitInterviewAnalysis } from '../types';
-import { MOCK_EXIT_INTERVIEW_ANALYSES } from '../constants';
+import { MOCK_EXIT_INTERVIEW_ANALYSES } from '../constants/data';
 
 interface AnalysisContextType {
     analyses: ExitInterviewAnalysis[];

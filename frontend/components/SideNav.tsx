@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { NavLink, useNavigate, Link, useLocation } from 'react-router-dom';
 import { NAV_ITEMS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,10 +16,28 @@ const SideNav: React.FC<SideNavProps> = ({ isOpen, onClose }) => {
     const { isDataAnonymized, toggleAnonymization, canAnonymize, allOrganizations, activeOrganizationId, setActiveOrganizationId, currentPackageFeatures } = useData();
     const navigate = useNavigate();
     const location = useLocation();
+    const [showSuperAdminControls, setShowSuperAdminControls] = useState(false);
 
     useEffect(() => {
-        // If super admin selects an org while on the user management page, navigate them to the home/dashboard view for that org.
-        if (currentUser?.role === 'Super Admin' && activeOrganizationId && location.pathname === '/app/user-management') {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.ctrlKey && event.shiftKey && (event.key === 'B' || event.key === 'b')) {
+                if (currentUser?.role === 'Super Admin') {
+                    event.preventDefault();
+                    setShowSuperAdminControls(prev => !prev);
+                }
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [currentUser]);
+
+    useEffect(() => {
+        // If super admin selects an org while on a super-admin-only page, navigate them to the home/dashboard view for that org.
+        if (currentUser?.role === 'Super Admin' && activeOrganizationId && ['/app/user-management', '/app/super-admin-reports'].includes(location.pathname)) {
             navigate('/app/home');
         }
     }, [activeOrganizationId, currentUser, location.pathname, navigate]);
@@ -47,8 +65,8 @@ const SideNav: React.FC<SideNavProps> = ({ isOpen, onClose }) => {
                 return false;
             }
 
-            // Rule 3: Special visibility for User Management for Super Admin
-            if (currentUser.role === 'Super Admin' && item.name === 'User Management') {
+            // Rule 3: Special visibility for Super Admin specific views
+            if (currentUser.role === 'Super Admin' && ['User Management', 'Platform Reports'].includes(item.name)) {
                 return !activeOrganizationId; // Only show if NO organization is selected
             }
             
@@ -63,7 +81,12 @@ const SideNav: React.FC<SideNavProps> = ({ isOpen, onClose }) => {
 
     if (!currentUser) return null;
 
-    const displayedUsername = isDataAnonymized ? `User #${currentUser.id}` : currentUser.username;
+    const displayedUsername = isDataAnonymized ? `User #${currentUser.id}` : currentUser.username.split('@')[0];
+    
+    const shouldShowAnonymize = canAnonymize && (
+        currentUser.role !== 'Super Admin' || 
+        (currentUser.role === 'Super Admin' && showSuperAdminControls)
+    );
     
     const navContent = (
       <div className="w-80 sm:w-64 flex-shrink-0 bg-card p-4 border-r border-border flex flex-col h-full">
@@ -94,7 +117,7 @@ const SideNav: React.FC<SideNavProps> = ({ isOpen, onClose }) => {
              </nav>
          </div>
          <div className="mt-auto">
-             {currentUser.role === 'Super Admin' && (
+             {currentUser.role === 'Super Admin' && showSuperAdminControls && (
                 <div className="p-3 mb-2">
                     <label htmlFor="org-switcher" className="text-sm font-medium text-text-secondary flex items-center gap-2 mb-2">
                         <Building className="h-5 w-5"/>
@@ -106,14 +129,14 @@ const SideNav: React.FC<SideNavProps> = ({ isOpen, onClose }) => {
                         onChange={(e) => setActiveOrganizationId(e.target.value || null)}
                         className="w-full bg-background border border-border rounded-md px-3 py-2 text-text-primary focus:ring-2 focus:ring-primary-500 focus:outline-none"
                     >
-                        <option value="">-- Select Org --</option>
+                        <option value="">-- Global View --</option>
                         {allOrganizations.map(org => (
                             <option key={org.id} value={org.id}>{org.name} {org.status === 'Inactive' ? '(Inactive)' : ''}</option>
                         ))}
                     </select>
                 </div>
               )}
-              {canAnonymize && (
+              {shouldShowAnonymize && (
                  <div className="p-3 rounded-md mb-2">
                      <label htmlFor="anonymize-toggle" className="flex items-center justify-between cursor-pointer">
                          <span className="text-sm font-medium text-text-secondary flex items-center gap-2">

@@ -2,8 +2,10 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Card, { CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { useAuth } from '../contexts/AuthContext';
-import { NAV_ITEMS, MOCK_ORGANIZATIONS } from '../constants';
+import { NAV_ITEMS } from '../constants';
+import { MOCK_ORGANIZATIONS } from '../constants/data';
 import { useData } from '../contexts/DataContext';
+import type { UserRole } from '../types';
 
 const HomePage: React.FC = () => {
     const { currentUser } = useAuth();
@@ -12,7 +14,15 @@ const HomePage: React.FC = () => {
     const menuItems = useMemo(() => {
         if (!currentUser) return [];
 
-        let rolesForFiltering = currentUser.role;
+        // Special case for Super Admin global view
+        if (currentUser.role === 'Super Admin' && !activeOrganizationId) {
+            return NAV_ITEMS.filter(item => 
+                item.name !== 'Home' && 
+                item.roles.includes('Super Admin')
+            );
+        }
+
+        let rolesForFiltering: UserRole = currentUser.role;
 
         // If Super Admin has selected an org, show them what an Org Admin would see.
         if (currentUser.role === 'Super Admin' && activeOrganizationId) {
@@ -40,7 +50,7 @@ const HomePage: React.FC = () => {
         if (currentUser.role === 'Super Admin') {
             return activeOrganizationId 
                 ? "You are viewing this organization's modules as an administrator."
-                : "Please select an organization from the sidebar to begin.";
+                : "Please select an action or an organization from the sidebar to begin.";
         }
         return `Your central hub for ${currentUser.organizationName || 'your organization'}'s data.`;
     }, [currentUser, activeOrganizationId]);

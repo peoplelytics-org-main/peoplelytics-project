@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { FileWarning, FilePieChart, BarChart3, Users, Calendar, Clock, LayoutGrid } from 'lucide-react';
 import { ClipboardCheckIcon } from '../constants';
 import Button from '../components/ui/Button';
-import { StandardReportsView } from '../components/reports/StandardReportsView';
+import StandardReportsView from '../components/reports/StandardReportsView';
 import OrgChartExplorer from '../components/reports/OrgChartExplorer';
 import ReportScheduler from '../components/reports/ReportScheduler';
 import TalentRiskMatrixView from '../components/reports/TalentRiskMatrixView';

@@ -56,7 +56,7 @@ const OrganizationSchema = new Schema<IOrganization>({
   },
   package: {
     type: String,
-    enum: ['Basic', 'Pro', 'Enterprise'],
+    enum: ['Basic','Intermediate', 'Pro', 'Enterprise'],
     required: true
   },
   employeeCount: {

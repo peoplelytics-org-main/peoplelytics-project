@@ -1,8 +1,6 @@
-
 import React, { useMemo, useState } from 'react';
-// FIX: Import `useNavigate` to make it available in the component.
 import { Link, useNavigate } from 'react-router-dom';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, type ChartEvent, type ActiveElement } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, type ChartEvent, type ActiveElement, type Chart } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Bar } from 'react-chartjs-2';
 import type { Employee, TurnoverPrediction } from '../../types';
@@ -14,7 +12,7 @@ import StatusBadge from '../ui/StatusBadge';
 import { Zap, AlertTriangle, CheckCircle, ShieldQuestion, Lightbulb, Sparkles, ShieldCheck, Star, X } from 'lucide-react';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { calculateOverallRetentionRate, getPerformanceDistribution, getRegrettableLeaversForManager, calculateFlightRiskScore, calculateImpactScore } from '../../services/hrCalculations';
+import { calculateOverallRetentionRate, getPerformanceDistribution, getRegrettableLeaversForManager, calculateFlightRiskScore, calculateImpactScore } from '../../services/calculations';
 import ChartCard from '../ChartCard';
 import MetricCard from '../MetricCard';
 import Gauge from '../ui/Gauge';
@@ -247,7 +245,7 @@ const ManagerTeamView: React.FC<ManagerTeamViewProps> = ({ manager, allEmployees
     const borderColor = useMemo(() => mode === 'dark' ? '#27272a' : '#e2e8f0', [mode]);
     const gridColor = useMemo(() => mode === 'dark' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(203, 213, 225, 0.5)', [mode]);
     
-    const handlePerformanceChartClick = (event: ChartEvent, elements: ActiveElement[]) => {
+    const handlePerformanceChartClick = (event: ChartEvent, elements: ActiveElement[], chart: Chart) => {
         if (elements.length > 0) {
             const { index } = elements[0];
             // The labels are ordered from rating 1 to 5. Index 0 is rating 1.
@@ -256,8 +254,8 @@ const ManagerTeamView: React.FC<ManagerTeamViewProps> = ({ manager, allEmployees
         }
     };
     
-    const onHover = (event: ChartEvent, elements: ActiveElement[]) => {
-        (event.native?.target as HTMLElement).style.cursor = elements.length > 0 ? 'pointer' : 'default';
+    const onHover = (event: ChartEvent, elements: ActiveElement[], chart: Chart) => {
+        chart.canvas.style.cursor = elements.length > 0 ? 'pointer' : 'default';
     };
     
     const performanceChartData = useMemo(() => ({
@@ -336,7 +334,7 @@ const ManagerTeamView: React.FC<ManagerTeamViewProps> = ({ manager, allEmployees
 
                 <ChartCard title="Team Performance Distribution" description="Performance rating breakdown. Click a bar to filter the roster.">
                     <div className="h-96">
-                        <Bar data={performanceChartData} options={performanceChartOptions} />
+                        <Bar data={performanceChartData} options={performanceChartOptions as any} />
                     </div>
                 </ChartCard>
             </div>

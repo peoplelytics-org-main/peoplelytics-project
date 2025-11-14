@@ -1,5 +1,3 @@
-
-// FIX: Import `useMemo` from React to resolve 'Cannot find name' error.
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import Papa from 'papaparse';
 import { useData } from '../contexts/DataContext';
@@ -11,7 +9,6 @@ import Card, { CardContent, CardHeader, CardTitle } from './ui/Card';
 
 interface AttendanceUploadProps {
   onComplete: (data: AttendanceRecord[]) => void;
-  // FIX: Added organizationId to props to associate uploaded data with an organization.
   organizationId: string;
 }
 
@@ -127,7 +124,6 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
             errors.push({ rowIndex: index + 2, errors: currentErrors, rowData: row });
           } else {
             const formattedDate = smartParseDate(row.date);
-            // FIX: Add missing organizationId to satisfy the AttendanceRecord type.
             valids.push({ 
                 employeeId: String(row.employeeId), 
                 date: formattedDate!, 
@@ -180,7 +176,6 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
             stillErrored.push({ ...row, errors: validationErrors });
         } else {
             const formattedDate = smartParseDate(row.rowData.date);
-            // FIX: Add missing organizationId to satisfy the AttendanceRecord type.
             newlyValid.push({ 
                 employeeId: String(row.rowData.employeeId), 
                 date: formattedDate!, 

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Type } from '@google/genai';
 import { getAIPrediction } from '../../services/geminiService';
 import type { Employee, AttendanceRecord, KPIForecast } from '../../types';
-import { getTurnoverTrend, getAbsenceTrend } from '../../services/hrCalculations';
+import { getTurnoverTrend, getAbsenceTrend } from '../../services/calculations';
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
 import Button from '../ui/Button';
 import { BrainCircuit, LineChart, Sparkles } from 'lucide-react';

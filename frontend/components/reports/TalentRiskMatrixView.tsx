@@ -1,8 +1,7 @@
-
 import React, { useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useData } from '../../contexts/DataContext';
-import { getEmployeeFlightRisk, calculateFlightRiskScore, calculateImpactScore } from '../../services/hrCalculations';
+import { getEmployeeFlightRisk, calculateFlightRiskScore, calculateImpactScore } from '../../services/calculations';
 import type { Employee } from '../../types';
 import Card, { CardHeader, CardTitle, CardContent, CardDescription } from '../ui/Card';
 import { X } from 'lucide-react';
@@ -38,7 +37,7 @@ const EmployeeListModal: React.FC<{
                 </CardHeader>
                 <CardContent className="overflow-y-auto space-y-3">
                     {employees.length > 0 ? employees.map(emp => (
-                        <Link to={`/profiles/${emp.id}`} key={emp.id} className="block p-3 bg-background rounded-md hover:bg-border transition-colors">
+                        <Link to={`/app/profiles/${emp.id}`} key={emp.id} className="block p-3 bg-background rounded-md hover:bg-border transition-colors">
                             <p className="font-semibold text-text-primary">{emp.name}</p>
                             <p className="text-sm text-text-secondary">{emp.jobTitle}</p>
                         </Link>

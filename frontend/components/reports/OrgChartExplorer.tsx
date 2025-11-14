@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useData } from '../../contexts/DataContext';
-import { getEmployeeFlightRisk } from '../../services/hrCalculations';
+import { getEmployeeFlightRisk } from '../../services/calculations';
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
 import OrgChartNode from './OrgChartNode';
 import type { Employee } from '../../types';

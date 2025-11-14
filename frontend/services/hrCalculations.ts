@@ -1,4 +1,3 @@
-
 import type { Employee, AttendanceRecord, JobPosition, RecruitmentFunnel, SuccessionGap, BurnoutRiskResult, SkillLevel, Skill, SkillGapData } from '../types';
 import { getEmployeeStatus } from '../utils/statusHelper';
 
@@ -717,7 +716,8 @@ export const getRetentionByDepartment = (employees: Employee[], timePeriod: '12m
   return rates.sort((a, b) => b.value - a.value);
 };
 
-export const getRetentionByManager = (employees: Employee[], timePeriod: '12m' | '6m' | '24m'): { name: string; value: number; managerId: string; teamSize: number }[] => {
+// FIX: Modified function to include 'leavers' count in the return object.
+export const getRetentionByManager = (employees: Employee[], timePeriod: '12m' | '6m' | '24m'): { name: string; value: number; managerId: string; teamSize: number; leavers: number }[] => {
     const managers = new Map<string, { name: string, team: Employee[], id: string }>();
 
     const activeEmployees = employees.filter(e => !e.terminationDate);
@@ -737,11 +737,17 @@ export const getRetentionByManager = (employees: Employee[], timePeriod: '12m' |
     });
     
     const rates = Array.from(managers.values()).map(managerData => {
+        const months = parseInt(timePeriod.replace('m', ''));
+        const now = new Date();
+        const startDate = new Date(new Date().setMonth(now.getMonth() - months));
+        const leaversInPeriod = managerData.team.filter(e => e.terminationDate && new Date(e.terminationDate) >= startDate && new Date(e.terminationDate) <= now).length;
+
         return {
             managerId: managerData.id,
             name: managerData.name,
             value: calculateOverallRetentionRate(managerData.team, timePeriod),
             teamSize: managerData.team.filter(e => !e.terminationDate).length,
+            leavers: leaversInPeriod,
         };
     });
 
@@ -930,7 +936,6 @@ export const getHighPerformerAttritionData = (employees: Employee[]) => {
     };
 };
 
-// FIX: Added function to resolve missing export error.
 export const getRegrettableLeaversForManager = (managerId: string, employees: Employee[]): Employee[] => {
     return employees.filter(e => 
         e.managerId === managerId &&

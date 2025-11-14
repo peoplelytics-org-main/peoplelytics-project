@@ -1,5 +1,5 @@
 import express from 'express';
-import {addOrganization} from "../../docs/database/superAdmin"
+import {addOrganization} from "../controllers/orgController"
 import DatabaseService from '../services/tenant/databaseService';
 import { logger } from '@/utils/helpers/logger';
 import {addUserToOrganization, deleteUserFromOrganization, getAllUsersFromOrganization, getUserById, updateUserInOrganization} from "../controllers/addUserToOrganization"

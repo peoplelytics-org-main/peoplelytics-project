@@ -8,6 +8,7 @@ import { DashboardConfigProvider } from './contexts/DashboardConfigContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { AnalysisProvider } from './contexts/AnalysisContext';
 import { ReportSettingsProvider } from './contexts/ReportSettingsContext';
+import { PermissionProvider } from './contexts/PermissionContext';
 
 import AppLayout from './components/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -28,6 +29,7 @@ import ProfilesListPage from './pages/ProfilesListPage';
 import ProfilePage from './pages/ProfilePage';
 import CustomizationPage from './pages/CustomizationPage';
 import UserManagementPage from './pages/UserManagementPage';
+import SuperAdminReportsPage from './pages/SuperAdminReportsPage';
 
 
 import type { UserRole } from './types';
@@ -36,6 +38,7 @@ import type { UserRole } from './types';
 const ORG_ADMIN_ANALYST: UserRole[] = ['Org Admin', 'HR Analyst'];
 const ALL_ORG_ROLES: UserRole[] = ['Org Admin', 'HR Analyst', 'Executive'];
 const SUPER_ADMIN_ORG_ADMIN: UserRole[] = ['Super Admin', 'Org Admin'];
+const SUPER_ADMIN_ONLY: UserRole[] = ['Super Admin'];
 
 const AppRoutes: React.FC = () => {
     const { isLoading } = useAuth();
@@ -65,7 +68,7 @@ const AppRoutes: React.FC = () => {
                     } />
                     
                     <Route path="/app/data-management" element={
-                      <RoleBasedGuard allowedRoles={ORG_ADMIN_ANALYST} checkHeadcountLimit>
+                      <RoleBasedGuard allowedRoles={ORG_ADMIN_ANALYST} checkHeadcountLimit requireWriteAccess>
                         <DataManagementPage />
                       </RoleBasedGuard>
                     }/>
@@ -74,13 +77,13 @@ const AppRoutes: React.FC = () => {
                     <Route path="/app/profiles/:employeeId" element={<RoleBasedGuard allowedRoles={ALL_ORG_ROLES} checkHeadcountLimit><ProfilePage /></RoleBasedGuard>} />
                     
                     <Route path="/app/employee-metrics" element={
-                      <RoleBasedGuard allowedRoles={ORG_ADMIN_ANALYST} checkHeadcountLimit>
+                      <RoleBasedGuard allowedRoles={ORG_ADMIN_ANALYST} checkHeadcountLimit featureFlag="hasEmployeeMetrics" featureName="Employee Metrics">
                           <CalculatorsPage pageType="employee" />
                       </RoleBasedGuard>
                     }/>
                     
                     <Route path="/app/hr-metrics" element={
-                      <RoleBasedGuard allowedRoles={ORG_ADMIN_ANALYST} checkHeadcountLimit>
+                      <RoleBasedGuard allowedRoles={ORG_ADMIN_ANALYST} checkHeadcountLimit featureFlag="hasHRMetrics" featureName="HR Metrics">
                           <CalculatorsPage pageType="hr" />
                       </RoleBasedGuard>
                     }/>
@@ -111,6 +114,12 @@ const AppRoutes: React.FC = () => {
                         </RoleBasedGuard>
                     }/>
 
+                    <Route path="/app/super-admin-reports" element={
+                        <RoleBasedGuard allowedRoles={SUPER_ADMIN_ONLY}>
+                            <SuperAdminReportsPage />
+                        </RoleBasedGuard>
+                    }/>
+
                     <Route path="/app/ai-assistant" element={
                         <RoleBasedGuard allowedRoles={ALL_ORG_ROLES} featureFlag="hasAIAssistant" featureName="AI Assistant" checkHeadcountLimit>
                             <AIAssistantPage />
@@ -131,17 +140,19 @@ function App(): React.ReactNode {
     <ThemeProvider>
       <AuthProvider>
         <DataProvider>
-          <DashboardConfigProvider>
-            <NotificationProvider>
-              <AnalysisProvider>
-                <ReportSettingsProvider>
-                  <HashRouter>
-                    <AppRoutes />
-                  </HashRouter>
-                </ReportSettingsProvider>
-              </AnalysisProvider>
-            </NotificationProvider>
-          </DashboardConfigProvider>
+          <PermissionProvider>
+            <DashboardConfigProvider>
+              <NotificationProvider>
+                <AnalysisProvider>
+                  <ReportSettingsProvider>
+                    <HashRouter>
+                      <AppRoutes />
+                    </HashRouter>
+                  </ReportSettingsProvider>
+                </AnalysisProvider>
+              </NotificationProvider>
+            </DashboardConfigProvider>
+          </PermissionProvider>
         </DataProvider>
       </AuthProvider>
     </ThemeProvider>

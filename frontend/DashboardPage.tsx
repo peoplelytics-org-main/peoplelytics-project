@@ -26,7 +26,8 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 import * as hrCalculations from '../services/hrCalculations';
 
 // Import constants and types
-import { AVAILABLE_WIDGETS, MOCK_RECRUITMENT_FUNNEL_DATA, MOCK_JOB_POSITIONS } from '../constants';
+// FIX: Removed MOCK_RECRUITMENT_FUNNEL_DATA and MOCK_JOB_POSITIONS as they are not exported from this module and are unused.
+import { AVAILABLE_WIDGETS } from '../constants';
 import { FileWarning, Users, TrendingDown, Clock, Activity, BarChart2, X, Filter, BrainCircuit, Building } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import type { Employee } from '../types';
@@ -218,8 +219,10 @@ const DashboardPage: React.FC = () => {
                 const departments = [...new Set(activeFilteredData.map(e => e.department))];
                 return departments.map(dept => {
                     const deptEmployees = activeFilteredData.filter(e => e.department === dept);
+                    // FIX: Explicitly convert numeric rating to a string when using it as an object key to prevent potential TypeScript type inference issues.
                     const counts = deptEmployees.reduce((acc, emp) => {
-                        acc[emp.performanceRating] = (acc[emp.performanceRating] || 0) + 1;
+                        const ratingKey = String(emp.performanceRating);
+                        acc[ratingKey] = (acc[ratingKey] || 0) + 1;
                         return acc;
                     }, {} as Record<string, number>);
                     return {

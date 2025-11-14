@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Chat, Part } from "@google/genai";
+import { GoogleGenAI, Chat } from "@google/genai";
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import MarkdownRenderer from '../components/ui/MarkdownRenderer';
 import { functionDeclarations, executeFunctionCall } from '../services/aiDataTools';
 import { useData } from '../contexts/DataContext';
-import { MOCK_JOB_POSITIONS, MOCK_RECRUITMENT_FUNNEL_DATA } from '../constants';
+import { MOCK_JOB_POSITIONS, MOCK_RECRUITMENT_FUNNEL_DATA } from '../constants/data';
 import { User, Sparkles, BrainCircuit, HelpCircle, X } from 'lucide-react';
 import { AI_ASSISTANT_INSTRUCTIONS } from '../constants/mockExitInterviewData';
 

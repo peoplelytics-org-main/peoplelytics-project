@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { getBurnoutHotspots } from '../../services/hrCalculations';
+import { getBurnoutHotspots } from '../../services/calculations';
 import { getAIAssistance } from '../../services/geminiService';
 import type { Employee, BurnoutRiskResult } from '../../types';
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
@@ -89,7 +89,6 @@ const BurnoutRiskModel: React.FC<BurnoutRiskModelProps> = ({ employees }) => {
             legend: { display: false },
             tooltip: {
                 callbacks: {
-                    // FIX: Added a type check to ensure `toFixed` is called on a number.
                     label: (context: any) => {
                         if (typeof context.raw === 'number') {
                             return `Risk Score: ${context.raw.toFixed(2)}`;
@@ -163,7 +162,6 @@ const BurnoutRiskModel: React.FC<BurnoutRiskModelProps> = ({ employees }) => {
                                                 <div className="flex-1">
                                                     <div className="flex justify-between text-text-secondary">
                                                         <span>{factorIcons[key as keyof typeof factorIcons].label}</span>
-                                                        {/* FIX: Added a type check to ensure .toFixed() is only called on numbers. */}
                                                         <span className="font-semibold text-text-primary">{typeof value === 'number' ? value.toFixed(2) : value}%</span>
                                                     </div>
                                                     <div className="w-full bg-border h-1.5 rounded-full mt-1">

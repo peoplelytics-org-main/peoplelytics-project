@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { Type } from '@google/genai';
 import { getAIPrediction } from '../../services/geminiService';
@@ -10,6 +8,7 @@ import { Sparkles, BrainCircuit, TrendingUp, Check } from 'lucide-react';
 
 interface PerformanceForecastModelProps {
   employees: Employee[];
+  employeesForAI: Employee[];
 }
 
 const performanceSchema = {
@@ -51,18 +50,19 @@ const ForecastDisplay: React.FC<{ prediction: PerformanceForecast, employee: Emp
 };
 
 
-const PerformanceForecastModel: React.FC<PerformanceForecastModelProps> = ({ employees }) => {
+const PerformanceForecastModel: React.FC<PerformanceForecastModelProps> = ({ employees, employeesForAI }) => {
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(employees[0]?.id || '');
     const [prediction, setPrediction] = useState<PerformanceForecast | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const selectedEmployee = useMemo(() => {
+    const selectedEmployeeForUI = useMemo(() => {
         return employees.find(e => e.id === selectedEmployeeId);
     }, [selectedEmployeeId, employees]);
 
     const handlePredict = async () => {
-        if (!selectedEmployee) return;
+        const selectedEmployeeForAI = employeesForAI.find(e => e.id === selectedEmployeeId);
+        if (!selectedEmployeeForAI) return;
         setIsLoading(true);
         setError(null);
         setPrediction(null);
@@ -72,10 +72,10 @@ const PerformanceForecastModel: React.FC<PerformanceForecastModelProps> = ({ emp
             Provide your prediction as a JSON object adhering to the specified schema.
 
             Employee Data:
-            - Job Title: ${selectedEmployee.jobTitle}
-            - Tenure: Hired on ${selectedEmployee.hireDate}. Today is ${new Date().toISOString().split('T')[0]}.
-            - Current Performance Rating (1-5, where 5 is highest): ${selectedEmployee.performanceRating}
-            - Engagement Score (1-100, where 100 is highest): ${selectedEmployee.engagementScore}
+            - Job Title: ${selectedEmployeeForAI.jobTitle}
+            - Tenure: Hired on ${selectedEmployeeForAI.hireDate}. Today is ${new Date().toISOString().split('T')[0]}.
+            - Current Performance Rating (1-5, where 5 is highest): ${selectedEmployeeForAI.performanceRating}
+            - Engagement Score (1-100, where 100 is highest): ${selectedEmployeeForAI.engagementScore}
 
             Consider factors like high engagement and strong past performance as positive indicators. A low engagement score might suppress future performance, even if past performance was good. Also consider if their tenure suggests they are still ramping up or have hit a plateau.
         `;
@@ -114,7 +114,7 @@ const PerformanceForecastModel: React.FC<PerformanceForecastModelProps> = ({ emp
                 
                 {error && <p className="text-sm text-red-400 mt-4">{error}</p>}
 
-                {prediction && selectedEmployee && <ForecastDisplay prediction={prediction} employee={selectedEmployee}/>}
+                {prediction && selectedEmployeeForUI && <ForecastDisplay prediction={prediction} employee={selectedEmployeeForUI}/>}
             </CardContent>
         </Card>
     );

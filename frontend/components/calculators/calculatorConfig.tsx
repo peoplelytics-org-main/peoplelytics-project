@@ -1,6 +1,5 @@
-
 import React from 'react';
-import * as hrCalculations from '../../services/hrCalculations';
+import * as hrCalculations from '../../services/calculations';
 import { 
     Clock, Gift, Banknote, Handshake, TrendingUp, Users, Star, UserPlus, HeartHandshake, BrainCircuit, UserCog, Briefcase, Target 
 } from 'lucide-react';

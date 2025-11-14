@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { Type } from '@google/genai';
 import { getAIPrediction } from '../../services/geminiService';
@@ -10,6 +8,7 @@ import { AlertTriangle, CheckCircle, ShieldQuestion, BarChart, Check, Zap } from
 
 interface TurnoverRiskModelProps {
   employees: Employee[];
+  employeesForAI: Employee[];
 }
 
 const turnoverSchema = {
@@ -69,14 +68,14 @@ const RiskDisplay: React.FC<{ prediction: TurnoverPrediction }> = ({ prediction 
     );
 };
 
-const TurnoverRiskModel: React.FC<TurnoverRiskModelProps> = ({ employees }) => {
+const TurnoverRiskModel: React.FC<TurnoverRiskModelProps> = ({ employees, employeesForAI }) => {
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(employees[0]?.id || '');
     const [prediction, setPrediction] = useState<TurnoverPrediction | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const handlePredict = async () => {
-        const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
+        const selectedEmployee = employeesForAI.find(e => e.id === selectedEmployeeId);
         if (!selectedEmployee) return;
         setIsLoading(true);
         setError(null);
