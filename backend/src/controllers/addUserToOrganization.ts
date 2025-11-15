@@ -11,7 +11,7 @@ import { getOrgConnection } from "../../docs/database/orgConnection";
 export const addUserToOrganization = async (req: Request, res: Response): Promise<void> => {
   try {
     const { orgId } = req.params;
-    const { username, password, role } = req.body;
+    const { username, password, role} = req.body;
 
     // Validate input
     if (!username || !password || !role) {
@@ -55,6 +55,7 @@ export const addUserToOrganization = async (req: Request, res: Response): Promis
       username,
       password: hashedPassword,
       role,
+      organizationId:orgIdentifier
     });
 
     await newUser.save();
@@ -68,6 +69,7 @@ export const addUserToOrganization = async (req: Request, res: Response): Promis
         id: newUser._id,
         username: newUser.username,
         role: newUser.role,
+        organizationId:orgIdentifier
       },
     });
   } catch (error) {

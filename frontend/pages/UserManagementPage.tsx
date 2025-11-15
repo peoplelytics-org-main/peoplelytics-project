@@ -20,7 +20,7 @@ interface SuperAdminViewProps {
     openOrgModal: (org: Organization | null) => void;
     deleteOrg: (orgId: string) => void;
     openUserModal: (user: User | null, orgId?: string) => void;
-    deleteUser: (userId: string) => void;
+    deleteUser: (organizationId:string,userId: string) => void;
     expandedOrg: string | null;
     setExpandedOrg: (id: string | null) => void;
     reactivateOrg: (orgId: string, newEndDate: string) => void;
@@ -983,7 +983,7 @@ const UserList: React.FC<{users: User[], openUserModal: (u: User) => void, delet
                         <td className="py-2 px-4 text-text-secondary">{user.role}</td>
                         <td className="py-2 px-4 text-right flex justify-end gap-2">
                             <Button size="sm" variant="secondary" onClick={() => openUserModal(user)}><Edit className="h-3 w-3"/></Button>
-                            <Button size="sm" variant="ghost" onClick={() => deleteUser(user.id)}><Trash2 className="h-3 w-3 text-red-400"/></Button>
+                            <Button size="sm" variant="ghost" onClick={() => deleteUser(user.organizationId,user.id)}><Trash2 className="h-3 w-3 text-red-400"/></Button>
                         </td>
                     </tr>
                 ))}
