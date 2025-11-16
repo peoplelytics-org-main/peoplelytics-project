@@ -12,7 +12,7 @@ export interface IDepartments extends Document {
   updatedAt: Date;
 }
 
-const DepartmentsSchema = new Schema<IDepartments>({
+export const DepartmentsSchema = new Schema<IDepartments>({
   departmentId: {
     type: String,
     required: true,
@@ -67,5 +67,5 @@ DepartmentsSchema.index({ budget: 1 });
 DepartmentsSchema.index({ location: 1, isActive: 1 });
 DepartmentsSchema.index({ headOfDepartment: 1, isActive: 1 });
 
-export const Departments = mongoose.model<IDepartments>('Departments', DepartmentsSchema);
+//export const Departments = mongoose.model<IDepartments>('Departments', DepartmentsSchema);
 

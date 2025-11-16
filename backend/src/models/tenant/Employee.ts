@@ -31,7 +31,7 @@ export interface IEmployee extends Document {
   updatedAt: Date;
 }
 
-const EmployeeSchema = new Schema<IEmployee>({
+export const EmployeeSchema = new Schema<IEmployee>({
   employeeId: {
     type: String,
     required: true,
@@ -208,4 +208,4 @@ EmployeeSchema.set('toJSON', {
   virtuals: true
 });
 
-export const Employee = mongoose.model<IEmployee>('Employee', EmployeeSchema);
+// export const Employee = mongoose.model<IEmployee>('Employee', EmployeeSchema);

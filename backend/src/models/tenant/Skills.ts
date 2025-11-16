@@ -11,7 +11,7 @@ export interface ISkills extends Document {
   updatedAt: Date;
 }
 
-const SkillsSchema = new Schema<ISkills>({
+export const SkillsSchema = new Schema<ISkills>({
   employeeId: {
     type: String,
     required: true,
@@ -59,5 +59,5 @@ SkillsSchema.index({ skillName: 1, skillLevel: 1 });
 SkillsSchema.index({ employeeId: 1, isActive: 1 });
 SkillsSchema.index({ skillLevel: 1, isActive: 1 });
 
-export const Skills = mongoose.model<ISkills>('Skills', SkillsSchema);
+//export const Skills = mongoose.model<ISkills>('Skills', SkillsSchema);
 

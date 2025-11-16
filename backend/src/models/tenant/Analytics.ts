@@ -17,7 +17,7 @@ export interface IAnalytics extends Document {
   updatedAt: Date;
 }
 
-const AnalyticsSchema = new Schema<IAnalytics>({
+export const AnalyticsSchema = new Schema<IAnalytics>({
   metricType: {
     type: String,
     required: true,
@@ -95,5 +95,5 @@ AnalyticsSchema.set('toJSON', {
   virtuals: true
 });
 
-export const Analytics = mongoose.model<IAnalytics>('Analytics', AnalyticsSchema);
+//export const Analytics = mongoose.model<IAnalytics>('Analytics', AnalyticsSchema);
 

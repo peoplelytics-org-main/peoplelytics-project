@@ -17,7 +17,7 @@ export const APP_PACKAGES: Record<PackageName, AppPackage> = {
         name: 'Basic',
         headcountLimit: 150,
         pricePerEmployee: 1.5,
-        roleLimits: { 'Org Admin': 1, 'HR Analyst': 0, 'Executive': 0 },
+        roleLimits: { 'Org Admin': 1, 'HR Analyst': 3, 'Executive': 3 },
         features: {
             hasUserManagementAccess: true,
             hasEmployeeMetrics: true,

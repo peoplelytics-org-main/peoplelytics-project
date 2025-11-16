@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IRecruitmentFunnels extends Document {
   positionId: string;
+  orgId:string;
   shortlisted: number;
   interviewed: number;
   offersExtended: number;
@@ -17,12 +18,16 @@ export interface IRecruitmentFunnels extends Document {
   updatedAt: Date;
 }
 
-const RecruitmentFunnelsSchema = new Schema<IRecruitmentFunnels>({
+export const RecruitmentFunnelsSchema = new Schema<IRecruitmentFunnels>({
   positionId: {
     type: String,
     required: true,
     unique: true,
     index: true
+  },
+  orgId:{
+    type:String,
+    required:true,
   },
   shortlisted: {
     type: Number,
@@ -105,5 +110,5 @@ RecruitmentFunnelsSchema.set('toJSON', {
   virtuals: true
 });
 
-export const RecruitmentFunnels = mongoose.model<IRecruitmentFunnels>('RecruitmentFunnels', RecruitmentFunnelsSchema);
+//export const RecruitmentFunnels = mongoose.model<IRecruitmentFunnels>('RecruitmentFunnels', RecruitmentFunnelsSchema);
 

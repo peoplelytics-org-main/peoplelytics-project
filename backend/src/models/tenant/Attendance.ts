@@ -12,7 +12,7 @@ export interface IAttendance extends Document {
   updatedAt: Date;
 }
 
-const AttendanceSchema = new Schema<IAttendance>({
+export const AttendanceSchema = new Schema<IAttendance>({
   employeeId: {
     type: String,
     required: true,
@@ -78,5 +78,5 @@ AttendanceSchema.set('toJSON', {
   virtuals: true
 });
 
-export const Attendance = mongoose.model<IAttendance>('Attendance', AttendanceSchema);
+
 

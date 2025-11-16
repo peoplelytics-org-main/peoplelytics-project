@@ -3,7 +3,7 @@ import { getOrgModels } from "../../docs/database/organization";
 import { Organization } from "../models/shared/Organization";
 import bcrypt from "bcryptjs";
 import { logger } from "../utils/helpers/logger";
-import { getOrgConnection } from "../../docs/database/orgConnection";
+
 
 /**
  * Add a new user inside the specific organization's Users collection
@@ -12,6 +12,12 @@ export const addUserToOrganization = async (req: Request, res: Response): Promis
   try {
     const { orgId } = req.params;
     const { username, password, role} = req.body;
+
+    const rolePermissions: Record<string, string[]> = {
+      "Organization Admin": ["read", "write", "edit", "delete"], // full access
+      "HR Analyst": ["read:limited"],                             // limited read
+      "Executive": ["read"]                                       // full read
+    };
 
     // Validate input
     if (!username || !password || !role) {
@@ -55,7 +61,8 @@ export const addUserToOrganization = async (req: Request, res: Response): Promis
       username,
       password: hashedPassword,
       role,
-      organizationId:orgIdentifier
+      permissions: rolePermissions[role],
+      orgId
     });
 
     await newUser.save();
@@ -69,7 +76,8 @@ export const addUserToOrganization = async (req: Request, res: Response): Promis
         id: newUser._id,
         username: newUser.username,
         role: newUser.role,
-        organizationId:orgIdentifier
+        permissions: rolePermissions[role],
+        orgId
       },
     });
   } catch (error) {

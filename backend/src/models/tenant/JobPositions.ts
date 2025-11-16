@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IJobPositions extends Document {
   positionId: string;
+  orgId:string,
   title: string;
   department: string;
   status: 'Open' | 'Closed' | 'On Hold';
@@ -22,12 +23,16 @@ export interface IJobPositions extends Document {
   updatedAt: Date;
 }
 
-const JobPositionsSchema = new Schema<IJobPositions>({
+export const JobPositionsSchema = new Schema<IJobPositions>({
   positionId: {
     type: String,
     required: true,
     unique: true,
     index: true
+  },
+  orgId:{
+    type:String,
+    required:true,
   },
   title: {
     type: String,
@@ -132,5 +137,5 @@ JobPositionsSchema.set('toJSON', {
   virtuals: true
 });
 
-export const JobPositions = mongoose.model<IJobPositions>('JobPositions', JobPositionsSchema);
+//export const JobPositions = mongoose.model<IJobPositions>('JobPositions', JobPositionsSchema);
 

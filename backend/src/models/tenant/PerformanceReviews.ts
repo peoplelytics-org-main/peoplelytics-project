@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IPerformanceReviews extends Document {
   employeeId: string;
+  orgId:string;
   reviewPeriod: string;
   reviewDate: Date;
   reviewerId: string;
@@ -19,11 +20,15 @@ export interface IPerformanceReviews extends Document {
   updatedAt: Date;
 }
 
-const PerformanceReviewsSchema = new Schema<IPerformanceReviews>({
+export const PerformanceReviewsSchema = new Schema<IPerformanceReviews>({
   employeeId: {
     type: String,
     required: true,
     index: true
+  },
+  orgId:{
+    type:String,
+    required:true,
   },
   reviewPeriod: {
     type: String,
@@ -123,5 +128,5 @@ PerformanceReviewsSchema.set('toJSON', {
   virtuals: true
 });
 
-export const PerformanceReviews = mongoose.model<IPerformanceReviews>('PerformanceReviews', PerformanceReviewsSchema);
+//export const PerformanceReviews = mongoose.model<IPerformanceReviews>('PerformanceReviews', PerformanceReviewsSchema);
 

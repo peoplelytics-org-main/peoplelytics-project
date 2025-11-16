@@ -1,38 +1,33 @@
 import mongoose from 'mongoose';
 import { getOrgConnection } from './orgConnection';
+import { AttendanceSchema } from '@/models/tenant/Attendance';
+import { EmployeeSchema } from '@/models/tenant/Employee';
+import { SkillsSchema } from '@/models/tenant/Skills';
+import { JobPositionsSchema } from '@/models/tenant/JobPositions';
+import { RecruitmentFunnelsSchema } from '@/models/tenant/RecruitmentFunnels';
+import { ExitInterviewsSchema } from '@/models/tenant/ExitInterviews';
+import { PerformanceReviewsSchema } from '@/models/tenant/PerformanceReviews';
+import { DepartmentsSchema } from '@/models/tenant/Departments';
+import { ReportsSchema } from '@/models/tenant/Reports';
+import { AnalyticsSchema } from '@/models/tenant/Analytics';
 
 // Define schemas once
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, required: true },
+  role: {
+    type: String,
+    enum: ["Org Admin", "HR Analyst", "Executive"],
+    required: true
+  },
+  permissions: {
+    type: [String],     // <-- Array of permissions
+    default: []
+  },
+  orgId: { type: String, required: true }
 });
 
-const attendanceSchema = new mongoose.Schema({
-  userId: mongoose.Schema.Types.ObjectId,
-  date: Date,
-  status: String, // present, absent, etc.
-});
 
-const accountSchema = new mongoose.Schema({
-  userId: mongoose.Schema.Types.ObjectId,
-  balance: Number,
-  lastUpdated: Date,
-});
-
-const expenseSchema = new mongoose.Schema({
-  category: String,
-  amount: Number,
-  date: Date,
-});
-
-const leaveSchema = new mongoose.Schema({
-  userId: mongoose.Schema.Types.ObjectId,
-  startDate: Date,
-  endDate: Date,
-  reason: String,
-  status: String,
-});
 
 // Return all models for one org
 export const getOrgModels = async(orgName: string) => {
@@ -40,10 +35,16 @@ export const getOrgModels = async(orgName: string) => {
 
   return {
     User: conn.model('Users', userSchema),
-    Account: conn.model('Accounts', accountSchema),
-    Attendance: conn.model('Attendance', attendanceSchema),
-    Expense: conn.model('Expenses', expenseSchema),
-    Leave: conn.model('Leaves', leaveSchema),
+    Departments:conn.model('Departments',DepartmentsSchema),
+    Employees:conn.model('Employees',EmployeeSchema),
+    Skills:conn.model("Skills",SkillsSchema),
+    JobPositions:conn.model("JobPositions",JobPositionsSchema),
+    Recruitment:conn.model("Recruitment",RecruitmentFunnelsSchema),
+    ExitInterview:conn.model("ExitInterview",ExitInterviewsSchema),
+    Performance:conn.model("Performance",PerformanceReviewsSchema),
+    Attendance: conn.model('Attendance', AttendanceSchema),
+    Reports:conn.model('Reports',ReportsSchema),
+    Analytics:conn.model('Analytics',AnalyticsSchema)
   };
 };
 
