@@ -8,12 +8,12 @@ export interface IRecruitmentFunnels extends Document {
   offersExtended: number;
   offersAccepted: number;
   joined: number;
-  conversionRates: {
-    shortlistToInterview: number;
-    interviewToOffer: number;
-    offerToAccept: number;
-    acceptToJoin: number;
-  };
+  // conversionRates: {
+  //   shortlistToInterview: number;
+  //   interviewToOffer: number;
+  //   offerToAccept: number;
+  //   acceptToJoin: number;
+  // };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,32 +59,32 @@ export const RecruitmentFunnelsSchema = new Schema<IRecruitmentFunnels>({
     min: 0,
     default: 0
   },
-  conversionRates: {
-    shortlistToInterview: {
-      type: Number,
-      min: 0,
-      max: 1,
-      default: 0
-    },
-    interviewToOffer: {
-      type: Number,
-      min: 0,
-      max: 1,
-      default: 0
-    },
-    offerToAccept: {
-      type: Number,
-      min: 0,
-      max: 1,
-      default: 0
-    },
-    acceptToJoin: {
-      type: Number,
-      min: 0,
-      max: 1,
-      default: 0
-    }
-  }
+  // conversionRates: {
+  //   shortlistToInterview: {
+  //     type: Number,
+  //     min: 0,
+  //     max: 1,
+  //     default: 0
+  //   },
+  //   interviewToOffer: {
+  //     type: Number,
+  //     min: 0,
+  //     max: 1,
+  //     default: 0
+  //   },
+  //   offerToAccept: {
+  //     type: Number,
+  //     min: 0,
+  //     max: 1,
+  //     default: 0
+  //   },
+  //   acceptToJoin: {
+  //     type: Number,
+  //     min: 0,
+  //     max: 1,
+  //     default: 0
+  //   }
+  // }
 }, {
   timestamps: true,
   collection: 'recruitment_funnels'

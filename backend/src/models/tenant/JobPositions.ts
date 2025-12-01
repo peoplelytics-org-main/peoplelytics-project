@@ -13,12 +13,6 @@ export interface IJobPositions extends Document {
   heldBy?: string;
   positionType: 'Replacement' | 'New';
   budgetStatus: 'Budgeted' | 'Non-Budgeted';
-  description: string;
-  requirements: string[];
-  salaryRange: {
-    min: number;
-    max: number;
-  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -87,27 +81,7 @@ export const JobPositionsSchema = new Schema<IJobPositions>({
     required: true,
     index: true
   },
-  description: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  requirements: [{
-    type: String,
-    trim: true
-  }],
-  salaryRange: {
-    min: {
-      type: Number,
-      required: true,
-      min: 0
-    },
-    max: {
-      type: Number,
-      required: true,
-      min: 0
-    }
-  }
+  
 }, {
   timestamps: true,
   collection: 'job_positions'

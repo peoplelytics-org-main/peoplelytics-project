@@ -6,10 +6,11 @@ import { SkillsSchema } from '@/models/tenant/Skills';
 import { JobPositionsSchema } from '@/models/tenant/JobPositions';
 import { RecruitmentFunnelsSchema } from '@/models/tenant/RecruitmentFunnels';
 import { ExitInterviewsSchema } from '@/models/tenant/ExitInterviews';
-import { PerformanceReviewsSchema } from '@/models/tenant/PerformanceReviews';
+import { PerformanceAndEngagementSchema } from '@/models/tenant/PerformanceReviews';
 import { DepartmentsSchema } from '@/models/tenant/Departments';
 import { ReportsSchema } from '@/models/tenant/Reports';
 import { AnalyticsSchema } from '@/models/tenant/Analytics';
+import { SalaryAndCompensationSchema } from '@/models/tenant/Salary';
 
 // Define schemas once
 const userSchema = new mongoose.Schema({
@@ -41,8 +42,9 @@ export const getOrgModels = async(orgName: string) => {
     JobPositions:conn.model("JobPositions",JobPositionsSchema),
     Recruitment:conn.model("Recruitment",RecruitmentFunnelsSchema),
     ExitInterview:conn.model("ExitInterview",ExitInterviewsSchema),
-    Performance:conn.model("Performance",PerformanceReviewsSchema),
+    Performance:conn.model("PerformanceAndEngagement",PerformanceAndEngagementSchema),
     Attendance: conn.model('Attendance', AttendanceSchema),
+    Salary:conn.model('SalaryAndCompensation',SalaryAndCompensationSchema),
     Reports:conn.model('Reports',ReportsSchema),
     Analytics:conn.model('Analytics',AnalyticsSchema)
   };

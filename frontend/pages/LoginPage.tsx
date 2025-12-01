@@ -54,9 +54,9 @@ const LoginPage: React.FC = () => {
                     <div className="mt-4 text-center text-xs text-text-secondary bg-card border border-border p-3 rounded-md">
                         <h4 className="font-semibold text-text-primary mb-1">Demo Users</h4>
                         <p>Try logging in as:</p>
-                        <p className="mt-1 font-mono">Email: <span className="text-primary-400">admin@peoplelytics.com</span></p>
+                        <p className="mt-1 font-mono">UserName: <span className="text-primary-400">superadmin@123</span></p>
                         <p className="font-mono">Password: <span className="text-primary-400">SuperAdminP@ss123!</span></p>
-                        <p className="font-mono">Organization admin: <span className="text-primary-400">admin@acme.com</span></p>
+                        <p className="font-mono">Organization admin: <span className="text-primary-400">acmeAdmin@123</span></p>
                         <p className="font-mono">Password: <span className="text-primary-400">OrgAdminP@ss123!</span></p>
                     </div>
                 </CardContent>

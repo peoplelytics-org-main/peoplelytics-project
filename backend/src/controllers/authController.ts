@@ -18,7 +18,7 @@ const generateToken = (user: IUser) => {
     role: user.role,
     organizationId: user.organizationId, // CRITICAL for your multi-tenant logic
     permissions: user.permissions,
-    email: user.profile.email,
+   
   };
 
   const secret = process.env.JWT_SECRET;
@@ -40,14 +40,14 @@ const generateToken = (user: IUser) => {
  */
 export const loginUser = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     console.log("\n--- NEW LOGIN ATTEMPT ---");
     console.log("Time:", new Date().toLocaleTimeString());
     console.log("Request Body:", req.body);
 
     // 1. Check if username and password exist
-    if (!email || !password) {
+    if (!username || !password) {
       console.log("DEBUG: Failed step 1 (missing username or password)");
       return res
         .status(400)
@@ -55,10 +55,10 @@ export const loginUser = async (req: Request, res: Response) => {
     }
 
     // 2. Find the user by username
-    const lowercaseEmail = email.toLowerCase();
+    const lowercaseEmail = username.toLowerCase();
     console.log("DEBUG: Querying database for user:", lowercaseEmail);
 
-    const user = await User.findOne({ "profile.email": lowercaseEmail }).select(
+    const user = await User.findOne({ "username": lowercaseEmail }).select(
       "+password"
     );
 
@@ -68,7 +68,7 @@ export const loginUser = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    console.log("DEBUG: User was found:", user.profile.email);
+    console.log("DEBUG: User was found:", user.username);
     console.log(
       "DEBUG: Hashed password from DB:",
       user.password.substring(0, 10) + "..."

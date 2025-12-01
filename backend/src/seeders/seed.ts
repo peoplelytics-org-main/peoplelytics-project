@@ -93,7 +93,7 @@ const seed = async () => {
     // 4. Create Super Admin user
     const superAdminPassword = await bcrypt.hash('SuperAdminP@ss123!', 10);
     const superAdmin = await User.create({
-      username: 'superadmin',
+      username: 'superadmin@123',
       email:"superadmin123@gmail.com",
       password: superAdminPassword,
       role: 'Super Admin',
@@ -151,7 +151,7 @@ const seed = async () => {
     const [orgAdmin, hrAnalyst, executive] = await Promise.all([
       // Org Admin
       User.create({
-        username: 'acme_admin',
+        username: 'acmeAdmin@123',
         password: orgAdminPass,
         role: 'Org Admin',
         isActive: true,

@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [checkAuthStatus]);
 
 
-    const login = useCallback(async (email: string, password: string) => {
+    const login = useCallback(async (username: string, password: string) => {
         // This function now calls the real API using fetch
         try {
           const response = await fetch('http://localhost:5000/api/auth/login', {
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ username, password }),
             // ❗️ This is critical for receiving the httpOnly cookie
             credentials: 'include',
           });
