@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IRecruitmentFunnels extends Document {
+  rec_funnel_id:string;
   positionId: string;
   orgId:string;
   shortlisted: number;
@@ -19,6 +20,12 @@ export interface IRecruitmentFunnels extends Document {
 }
 
 export const RecruitmentFunnelsSchema = new Schema<IRecruitmentFunnels>({
+  rec_funnel_id: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
   positionId: {
     type: String,
     required: true,

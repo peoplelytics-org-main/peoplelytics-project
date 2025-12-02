@@ -5,11 +5,8 @@ export interface IPerformanceAndEngagement extends Document {
   name:string;
   performanceRating:number;
   potentialRating:number;
-  engagementScore:number;
   flightRiskScore:number;
   impactScore:number;
-  managementSatisfaction:number;
-  trainingSatisfaction:number;
   trainingCompleted:number;
   trainingTotal:number;
   weeklyHours:number;
@@ -21,6 +18,7 @@ export interface IPerformanceAndEngagement extends Document {
 export const PerformanceAndEngagementSchema = new Schema<IPerformanceAndEngagement>({
   employeeId: {
     type: String,
+    ref:"employees",
     required: true,
     index: true
   },
@@ -42,13 +40,7 @@ export const PerformanceAndEngagementSchema = new Schema<IPerformanceAndEngageme
     max: 3,
     index: true
   },
-  engagementScore: {
-    type: Number,
-    required: true,
-    min: 1,
-    max: 100,
-    index: true
-  },
+  
   flightRiskScore:{
     type:Number,
     default:0.0,
@@ -60,16 +52,6 @@ export const PerformanceAndEngagementSchema = new Schema<IPerformanceAndEngageme
     default:0.0,
     min:0.0,
     max:10.0
-  },
-  managementSatisfaction: {
-    type: Number,
-    min: 1,
-    max: 100
-  },
-  trainingSatisfaction:{
-    type:Number,
-    min:1,
-    max:100
   },
   trainingCompleted: {
     type: Number,

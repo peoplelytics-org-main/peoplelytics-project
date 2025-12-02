@@ -1,20 +1,26 @@
 import { Schema, Document } from 'mongoose';
 
 export interface ISalaryAndCompensation extends Document{
+    salaryId:string;
     employeeId:string;
     name:string;
     salary:number;
     bonus:number;
     lastRaiseAmount?:number;
-    compensationSatisfaction?:number;
-    benefitsSatisfaction?:number;
+    lastRaiseDate?: Date;
 }
 
 export const SalaryAndCompensationSchema= new Schema <ISalaryAndCompensation>({
-    employeeId: {
+    salaryId: {
         type: String,
         required: true,
         unique: true,
+        index: true
+    },
+    employeeId: {
+        type: String,
+        ref:"employees",
+        required: true,
         index: true
     },
     name: {
@@ -27,15 +33,8 @@ export const SalaryAndCompensationSchema= new Schema <ISalaryAndCompensation>({
         required: true,
         min: 0
     },
-    compensationSatisfaction: {
-        type: Number,
-        min: 1,
-        max: 100
-    },
-    benefitsSatisfaction: {
-        type: Number,
-        min: 1,
-        max: 100
+    lastRaiseDate:{
+        type:Date
     },
 
     bonus: {

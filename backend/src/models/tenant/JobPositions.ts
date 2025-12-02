@@ -2,7 +2,6 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IJobPositions extends Document {
   positionId: string;
-  orgId:string,
   title: string;
   department: string;
   status: 'Open' | 'Closed' | 'On Hold';
@@ -23,10 +22,6 @@ export const JobPositionsSchema = new Schema<IJobPositions>({
     required: true,
     unique: true,
     index: true
-  },
-  orgId:{
-    type:String,
-    required:true,
   },
   title: {
     type: String,
@@ -59,6 +54,7 @@ export const JobPositionsSchema = new Schema<IJobPositions>({
   },
   hiredEmployeeId: {
     type: String,
+    ref:"employees",
     index: true
   },
   onHoldDate: {
@@ -67,6 +63,7 @@ export const JobPositionsSchema = new Schema<IJobPositions>({
   },
   heldBy: {
     type: String,
+    ref:"employees",
     trim: true
   },
   positionType: {

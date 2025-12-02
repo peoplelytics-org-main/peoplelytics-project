@@ -11,6 +11,7 @@ import { DepartmentsSchema } from '@/models/tenant/Departments';
 import { ReportsSchema } from '@/models/tenant/Reports';
 import { AnalyticsSchema } from '@/models/tenant/Analytics';
 import { SalaryAndCompensationSchema } from '@/models/tenant/Salary';
+import { EmployeeFeedbackSchema } from '@/models/tenant/Employee_Feedback';
 
 // Define schemas once
 const userSchema = new mongoose.Schema({
@@ -38,6 +39,7 @@ export const getOrgModels = async(orgName: string) => {
     User: conn.model('Users', userSchema),
     Departments:conn.model('Departments',DepartmentsSchema),
     Employees:conn.model('Employees',EmployeeSchema),
+    EmployeeFeedback:conn.model('Employee_Feedback',EmployeeFeedbackSchema),
     Skills:conn.model("Skills",SkillsSchema),
     JobPositions:conn.model("JobPositions",JobPositionsSchema),
     Recruitment:conn.model("Recruitment",RecruitmentFunnelsSchema),

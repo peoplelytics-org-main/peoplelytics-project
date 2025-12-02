@@ -1,26 +1,35 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IAttendance extends Document {
+  attendanceId:string;
   employeeId: string;
-  date: Date;
+  date_time_in: Date;
+  date_time_out?: Date;
   status: 'Present' | 'Unscheduled Absence' | 'PTO' | 'Sick Leave';
-  hoursWorked?: number;
-  checkIn?: Date;
-  checkOut?: Date;
-  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export const AttendanceSchema = new Schema<IAttendance>({
-  employeeId: {
+  attendanceId:{
     type: String,
     required: true,
     index: true
   },
-  date: {
+  employeeId: {
+    type: String,
+    ref:"employees",
+    required: true,
+    index: true
+  },
+  date_time_in: {
     type: Date,
     required: true,
+    index: true
+  },
+  date_time_out: {
+    type: Date,
+    required: false,
     index: true
   },
   status: {
@@ -29,22 +38,7 @@ export const AttendanceSchema = new Schema<IAttendance>({
     required: true,
     index: true
   },
-  hoursWorked: {
-    type: Number,
-    min: 0,
-    max: 24
-  },
-  checkIn: {
-    type: Date
-  },
-  checkOut: {
-    type: Date
-  },
-  notes: {
-    type: String,
-    trim: true,
-    maxlength: 500
-  }
+  
 }, {
   timestamps: true,
   collection: 'attendance'
@@ -56,17 +50,9 @@ AttendanceSchema.index({ employeeId: 1, date: 1 }, { unique: true });
 // Indexes for better query performance
 AttendanceSchema.index({ date: 1, status: 1 });
 AttendanceSchema.index({ employeeId: 1, status: 1 });
-AttendanceSchema.index({ date: 1 });
 AttendanceSchema.index({ status: 1 });
 
-// Virtual for work duration
-AttendanceSchema.virtual('workDuration').get(function() {
-  if (this.checkIn && this.checkOut) {
-    const diffTime = this.checkOut.getTime() - this.checkIn.getTime();
-    return Math.round(diffTime / (1000 * 60 * 60)); // Hours
-  }
-  return this.hoursWorked || 0;
-});
+
 
 // Virtual for is present
 AttendanceSchema.virtual('isPresent').get(function() {

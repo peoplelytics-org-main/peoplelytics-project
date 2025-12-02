@@ -28,6 +28,7 @@ export interface IExitInterviews extends Document {
 export const ExitInterviewsSchema = new Schema<IExitInterviews>({
   employeeId: {
     type: String,
+    ref:"employees",
     required: true,
     index: true
   },
