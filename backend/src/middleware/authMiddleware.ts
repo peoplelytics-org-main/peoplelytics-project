@@ -17,41 +17,45 @@ export interface AuthenticatedRequest extends Request {
 
 /**
  * Protects routes by verifying the JWT.
+ * Supports both Bearer token (Authorization header) and HTTP-only cookies.
  * Attaches the decoded user payload to req.user.
  */
 export const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  let token: string | undefined;
+
+  // Method 1: Check for Bearer token in Authorization header
   const authHeader = req.headers.authorization;
-
-  // Check for the "Bearer" token in the Authorization header
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    try {
-      // 1. Get token from header. 
-      // We declare it here. TypeScript knows it's a string.
-      const token = authHeader.split(' ')[1];
+    token = authHeader.split(' ')[1];
+  }
+  // Method 2: Check for token in HTTP-only cookie
+  else if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
 
-      // 2. Verify the token using your secret
-      // No more error, as 'token' is guaranteed to be a string in this block
-      const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as jwt.JwtPayload;
-
-      // 3. Find the user by ID from the token
-      const freshUser = await User.findById(decoded.id);
-
-      if (!freshUser || !freshUser.isActive) {
-        return res.status(401).json({ message: 'User not found or deactivated' });
-      }
-
-      // 4. Attach the user payload to the request object
-      req.user = decoded; 
-
-      next(); // All good, proceed
-
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      return res.status(401).json({ message: 'Not authorized, token failed' });
-    }
-  } else {
-    // This replaces the 'if (!token)' check at the end
+  if (!token) {
     return res.status(401).json({ message: 'Not authorized, no token provided' });
+  }
+
+  try {
+    // Verify the token using your secret
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as jwt.JwtPayload;
+
+    // Find the user by ID from the token
+    const freshUser = await User.findById(decoded.id);
+
+    if (!freshUser || !freshUser.isActive) {
+      return res.status(401).json({ message: 'User not found or deactivated' });
+    }
+
+    // Attach the user payload to the request object
+    req.user = decoded;
+
+    return next(); // All good, proceed
+
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    return res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };
 
@@ -66,6 +70,6 @@ export const restrictTo = (...roles: string[]) => {
         message: 'You do not have permission to perform this action' 
       });
     }
-    next();
+    return next();
   };
 };

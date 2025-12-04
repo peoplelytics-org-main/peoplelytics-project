@@ -22,15 +22,12 @@ const generateToken = (user: IUser) => {
   };
 
   const secret = process.env.JWT_SECRET;
-  const options = {
-    expiresIn: "7d",
-  };
 
   if (!secret) {
     throw new Error("JWT_SECRET is not defined in environment variables.");
   }
 
-  return jwt.sign(payload, secret, options);
+  return jwt.sign(payload, secret, { expiresIn: "7d" });
 };
 
 /**
@@ -54,13 +51,21 @@ export const loginUser = async (req: Request, res: Response) => {
         .json({ message: "Please provide username and password" });
     }
 
-    // 2. Find the user by username
-    const lowercaseEmail = username.toLowerCase();
-    console.log("DEBUG: Querying database for user:", lowercaseEmail);
+    // 2. Find the user by username OR email
+    const lowercaseInput = username.toLowerCase();
+    console.log("DEBUG: Querying database for user:", lowercaseInput);
 
-    const user = await User.findOne({ "username": lowercaseEmail }).select(
+    // Try to find user by username first, then by email
+    let user = await User.findOne({ "username": lowercaseInput }).select(
       "+password"
     );
+    
+    // If not found by username, try to find by email
+    if (!user) {
+      user = await User.findOne({ "profile.email": lowercaseInput }).select(
+        "+password"
+      );
+    }
 
     // 3. Check if user exists
     if (!user) {
@@ -105,7 +110,7 @@ export const loginUser = async (req: Request, res: Response) => {
       sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
-    res.status(200).json({
+    return res.status(200).json({
       message: "Login successful",
       token,
       user: {
@@ -119,7 +124,7 @@ export const loginUser = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Login Error:", error);
-    res.status(500).json({ message: "Server error during login" });
+    return res.status(500).json({ message: "Server error during login" });
   }
 };
 
@@ -156,7 +161,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     if (!user) return res.status(401).json({ message: "User not found" });
 
     // ✅ Wrap the response in a "user" object to match frontend expectations
-    res.json({
+    return res.json({
       user: {
         id: user._id,
         username: user.username,

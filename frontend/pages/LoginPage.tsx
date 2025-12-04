@@ -5,6 +5,7 @@ import { UserRole } from '../types';
 import Button from '../components/ui/Button';
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import Input from '../components/ui/Input';
+import { Eye, EyeOff } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
     const { login } = useAuth();
@@ -13,6 +14,7 @@ const LoginPage: React.FC = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,8 +44,31 @@ const LoginPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
-                        <Input label="Username" id="username" type="email" value={username} onChange={e => setUsername(e.target.value)} placeholder="superadmin@peoplelytics.com" required />
-                        <Input label="Password" id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                        <Input label="Username or Email" id="username" type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="superadmin or admin@peoplelytics.com" required />
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-1">
+                                Password
+                            </label>
+                            <div className="relative">
+                                <input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    placeholder="Enter your password"
+                                    required
+                                    className="w-full bg-background border border-border rounded-md px-3 py-2 pr-10 text-text-primary focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-secondary hover:text-text-primary focus:outline-none"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
+                            </div>
+                        </div>
                         
                         {error && <p className="text-sm text-red-400">{error}</p>}
 
@@ -54,10 +79,10 @@ const LoginPage: React.FC = () => {
                     <div className="mt-4 text-center text-xs text-text-secondary bg-card border border-border p-3 rounded-md">
                         <h4 className="font-semibold text-text-primary mb-1">Demo Users</h4>
                         <p>Try logging in as:</p>
-                        <p className="mt-1 font-mono">UserName: <span className="text-primary-400">superadmin@123</span></p>
-                        <p className="font-mono">Password: <span className="text-primary-400">SuperAdminP@ss123!</span></p>
-                        <p className="font-mono">Organization admin: <span className="text-primary-400">acmeAdmin@123</span></p>
-                        <p className="font-mono">Password: <span className="text-primary-400">OrgAdminP@ss123!</span></p>
+                        <p className="mt-1 font-mono">Super Admin:</p>
+                        <p className="font-mono">Username: <span className="text-primary-400">superadmin</span></p>
+                        <p className="font-mono">Password: <span className="text-primary-400">SuperAdmin@2024!</span></p>
+                        <p className="mt-2 font-mono">Or use email: <span className="text-primary-400">admin@peoplelytics.com</span></p>
                     </div>
                 </CardContent>
             </Card>

@@ -12,6 +12,23 @@ export interface IEmployee extends Document {
   gender: 'Male' | 'Female' | 'Other';
   managerId?: string;
   successionStatus: 'Ready Now' | 'Ready in 1-2 Years' | 'Future Potential' | 'Not Assessed';
+  // Additional fields expected by frontend
+  salary?: number;
+  performanceRating?: number; // 1-5
+  potentialRating?: number; // 1-3
+  engagementScore?: number; // 1-100
+  skills?: Array<{ name: string; level: 'Novice' | 'Beginner' | 'Competent' | 'Proficient' | 'Expert' }>;
+  compensationSatisfaction?: number; // 1-100
+  benefitsSatisfaction?: number; // 1-100
+  managementSatisfaction?: number; // 1-100
+  trainingSatisfaction?: number; // 1-100
+  trainingCompleted?: number;
+  trainingTotal?: number;
+  bonus?: number;
+  lastRaiseAmount?: number;
+  hasGrievance?: boolean;
+  weeklyHours?: number;
+  snapshotDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -77,6 +94,89 @@ export const EmployeeSchema = new Schema<IEmployee>({
     enum: ['Ready Now', 'Ready in 1-2 Years', 'Future Potential', 'Not Assessed'],
     default: 'Not Assessed',
     index: true
+  },
+  // Additional fields expected by frontend
+  salary: {
+    type: Number,
+    default: 0,
+    index: true
+  },
+  performanceRating: {
+    type: Number,
+    min: 1,
+    max: 5,
+    index: true
+  },
+  potentialRating: {
+    type: Number,
+    min: 1,
+    max: 3,
+    index: true
+  },
+  engagementScore: {
+    type: Number,
+    min: 1,
+    max: 100,
+    index: true
+  },
+  skills: [{
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    level: {
+      type: String,
+      enum: ['Novice', 'Beginner', 'Competent', 'Proficient', 'Expert'],
+      required: true
+    }
+  }],
+  compensationSatisfaction: {
+    type: Number,
+    min: 1,
+    max: 100
+  },
+  benefitsSatisfaction: {
+    type: Number,
+    min: 1,
+    max: 100
+  },
+  managementSatisfaction: {
+    type: Number,
+    min: 1,
+    max: 100
+  },
+  trainingSatisfaction: {
+    type: Number,
+    min: 1,
+    max: 100
+  },
+  trainingCompleted: {
+    type: Number,
+    default: 0
+  },
+  trainingTotal: {
+    type: Number,
+    default: 0
+  },
+  bonus: {
+    type: Number,
+    default: 0
+  },
+  lastRaiseAmount: {
+    type: Number
+  },
+  hasGrievance: {
+    type: Boolean,
+    default: false
+  },
+  weeklyHours: {
+    type: Number,
+    default: 40
+  },
+  snapshotDate: {
+    type: Date,
+    index: true
   }
 }, {
   timestamps: true,
@@ -87,16 +187,13 @@ export const EmployeeSchema = new Schema<IEmployee>({
 EmployeeSchema.index({ employeeId: 1 });
 EmployeeSchema.index({ department: 1, location: 1 });
 EmployeeSchema.index({ jobTitle: 1 });
-EmployeeSchema.index({ performanceRating: 1, potentialRating: 1 });
 EmployeeSchema.index({ managerId: 1 });
 EmployeeSchema.index({ terminationDate: 1 });
 EmployeeSchema.index({ hireDate: 1 });
-EmployeeSchema.index({ snapshotDate: 1 });
 
 // Compound indexes for common queries
-EmployeeSchema.index({ department: 1, performanceRating: 1 });
 EmployeeSchema.index({ location: 1, gender: 1 });
-EmployeeSchema.index({ managerId: 1, performanceRating: 1 });
+EmployeeSchema.index({ department: 1, terminationDate: 1 });
 
 // Virtual for tenure calculation
 EmployeeSchema.virtual('tenure').get(function(this: IEmployee) {

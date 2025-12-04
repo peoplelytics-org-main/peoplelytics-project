@@ -5,11 +5,38 @@ import Button from '../components/ui/Button';
 import MarkdownRenderer from '../components/ui/MarkdownRenderer';
 import { functionDeclarations, executeFunctionCall } from '../services/aiDataTools';
 import { useData } from '../contexts/DataContext';
-import { MOCK_JOB_POSITIONS, MOCK_RECRUITMENT_FUNNEL_DATA } from '../constants/data';
 import { User, Sparkles, BrainCircuit, HelpCircle, X } from 'lucide-react';
 import { AI_ASSISTANT_INSTRUCTIONS } from '../constants/mockExitInterviewData';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+// Get API key from environment - support both Vite's import.meta.env and process.env (via Vite define)
+const getApiKey = (): string | undefined => {
+  // Try import.meta.env first (Vite standard)
+  if (import.meta.env.VITE_GEMINI_API_KEY) {
+    return import.meta.env.VITE_GEMINI_API_KEY;
+  }
+  // Fallback to process.env (defined in vite.config.ts)
+  if (process.env.API_KEY) {
+    return process.env.API_KEY;
+  }
+  if (process.env.GEMINI_API_KEY) {
+    return process.env.GEMINI_API_KEY;
+  }
+  return undefined;
+};
+
+// Lazy initialization - only create AI instance when needed and API key is available
+let aiInstance: GoogleGenAI | null = null;
+
+const getAIInstance = (): GoogleGenAI | null => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    return null;
+  }
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey });
+  }
+  return aiInstance;
+};
 
 interface Message {
   sender: 'user' | 'ai';
@@ -17,7 +44,7 @@ interface Message {
 }
 
 const AIAssistantPage: React.FC = () => {
-  const { employeeData, attendanceData } = useData();
+  const { employeeData, attendanceData, jobPositions, recruitmentFunnels } = useData();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([
       {
@@ -31,7 +58,8 @@ const AIAssistantPage: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (process.env.API_KEY) {
+    const ai = getAIInstance();
+    if (ai) {
         chatRef.current = ai.chats.create({
             model: 'gemini-2.5-flash',
             config: {
@@ -83,8 +111,8 @@ const AIAssistantPage: React.FC = () => {
             const dataContext = {
                 employees: employeeData,
                 attendance: attendanceData,
-                jobPositions: MOCK_JOB_POSITIONS,
-                recruitmentFunnels: MOCK_RECRUITMENT_FUNNEL_DATA,
+                jobPositions: jobPositions,
+                recruitmentFunnels: recruitmentFunnels,
             };
 
             const functionResponses = await Promise.all(
@@ -146,11 +174,11 @@ const AIAssistantPage: React.FC = () => {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                        placeholder={!process.env.API_KEY ? "API Key not configured. AI is disabled." : "Ask a question about your data..."}
+                        placeholder={!getApiKey() ? "API Key not configured. AI is disabled." : "Ask a question about your data..."}
                         className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-text-primary focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                        disabled={isLoading || !process.env.API_KEY}
+                        disabled={isLoading || !getApiKey()}
                     />
-                    <Button onClick={handleSendMessage} isLoading={isLoading} disabled={!process.env.API_KEY}>Send</Button>
+                    <Button onClick={handleSendMessage} isLoading={isLoading} disabled={!getApiKey()}>Send</Button>
                 </div>
             </div>
         </Card>

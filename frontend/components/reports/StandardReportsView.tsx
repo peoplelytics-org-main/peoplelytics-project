@@ -10,7 +10,6 @@ import NineBoxGrid from './NineBoxGrid';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement, Filler, ScriptableContext, type ChartEvent, type ActiveElement, Chart } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Bar, Pie, Line, Scatter } from 'react-chartjs-2';
-import { MOCK_JOB_POSITIONS, MOCK_RECRUITMENT_FUNNEL_DATA } from '../../constants/data';
 import StatusBadge from '../ui/StatusBadge';
 import { 
     getGenderDiversity, 
@@ -136,7 +135,7 @@ const skillLevelColors: Record<SkillLevel, string> = {
 };
 
 const StandardReportsView: React.FC = () => {
-    const { displayedData, attendanceData } = useData();
+    const { displayedData, attendanceData, jobPositions, recruitmentFunnels } = useData();
     const { mode, currency, theme } = useTheme();
     const { skillScarcityKey } = useReportSettings();
     const navigate = useNavigate();
@@ -352,9 +351,9 @@ const StandardReportsView: React.FC = () => {
         const turnover_locationFilteredEmployees = turnoverFilters.location === 'all' ? displayedData : displayedData.filter(e => e.location === turnoverFilters.location);
        
         // --- Recruitment ---
-        const openPositions = MOCK_JOB_POSITIONS.filter(p => p.status === 'Open');
-        const closedPositions = MOCK_JOB_POSITIONS.filter(p => p.status === 'Closed');
-        const onHoldPositions = MOCK_JOB_POSITIONS.filter(p => p.status === 'On Hold');
+        const openPositions = jobPositions.filter(p => p.status === 'Open');
+        const closedPositions = jobPositions.filter(p => p.status === 'Closed');
+        const onHoldPositions = jobPositions.filter(p => p.status === 'On Hold');
 
 
         // --- Retention ---
@@ -475,9 +474,9 @@ const StandardReportsView: React.FC = () => {
                     onHoldPositions: onHoldPositions.length,
                     avgAge: calculateAveragePositionAge(openPositions),
                     closedThisMonth: closedPositions.filter(p => p.closeDate && new Date(p.closeDate).getMonth() === new Date().getMonth()).length,
-                    acceptanceRate: calculateOfferAcceptanceRateFromFunnel(MOCK_RECRUITMENT_FUNNEL_DATA)
+                    acceptanceRate: calculateOfferAcceptanceRateFromFunnel(recruitmentFunnels)
                 },
-                funnel: getRecruitmentFunnelTotals(MOCK_RECRUITMENT_FUNNEL_DATA),
+                funnel: getRecruitmentFunnelTotals(recruitmentFunnels),
                 openByDept: getOpenPositionsByDepartment(openPositions),
                 openByTitle: getOpenPositionsByTitle(openPositions),
                 oldestOpen: openPositions.sort((a,b) => new Date(a.openDate).getTime() - new Date(b.openDate).getTime()).slice(0, 5),
@@ -559,7 +558,7 @@ const StandardReportsView: React.FC = () => {
             const department = chartData.recruitment.openByDept[index].department;
             const datasetLabel = chart.data.datasets[datasetIndex].label || '';
             
-            const filteredPositions = MOCK_JOB_POSITIONS.filter(pos => {
+            const filteredPositions = jobPositions.filter(pos => {
                 if (pos.status !== 'Open' || pos.department !== department) return false;
                 if (datasetLabel === 'Replacement') return pos.positionType === 'Replacement' || !pos.positionType;
                 if (datasetLabel === 'New (Budgeted)') return pos.positionType === 'New' && pos.budgetStatus === 'Budgeted';

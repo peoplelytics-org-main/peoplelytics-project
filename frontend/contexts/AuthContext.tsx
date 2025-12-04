@@ -18,11 +18,21 @@ const handleResponse = async (response: Response) => {
     
     // If the server sent a specific error message, use it
     try {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'An error occurred');
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || errorData.error || 'An error occurred');
+      } else {
+        // If response is not JSON, read as text
+        const text = await response.text();
+        throw new Error(text || `HTTP error! Status: ${response.status}`);
+      }
     } catch (e) {
-      // If the error response wasn't JSON, throw a generic error
-      throw new Error((e as Error).message || `HTTP error! Status: ${response.status}`);
+      // If parsing failed, throw a generic error with status
+      if (e instanceof Error && e.message) {
+        throw e;
+      }
+      throw new Error(`HTTP error! Status: ${response.status}`);
     }
   };
 // In a real app, this would be a secure HttpOnly cookie or similar token.
@@ -31,8 +41,16 @@ const handleResponse = async (response: Response) => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const isCheckingAuthRef = React.useRef(false);
+    const hasCheckedAuth = React.useRef(false);
 
     const checkAuthStatus = useCallback(async () => {
+      // Prevent multiple simultaneous calls using ref
+      if (isCheckingAuthRef.current) {
+        return;
+      }
+      
+      isCheckingAuthRef.current = true;
       setIsLoading(true);
       try {
         const response = await fetch("http://localhost:5000/api/auth/me", {
@@ -40,21 +58,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           credentials: "include"
         });
     
-        if (!response.ok) throw new Error();
+        if (!response.ok) {
+          // If rate limited, don't keep retrying - just set loading to false
+          if (response.status === 429) {
+            console.warn('Rate limited on auth check');
+            setIsLoading(false);
+            isCheckingAuthRef.current = false;
+            // Don't update user state, keep existing state
+            return;
+          }
+          // For other errors, set user to null
+          setCurrentUser(null);
+          return;
+        }
     
         const data = await response.json();
         setCurrentUser(data.user||null);
-      } catch (_) {
-        setCurrentUser(null);
+        hasCheckedAuth.current = true;
+      } catch (error) {
+        // Only set to null if it's not a rate limit error
+        if (error instanceof Error && !error.message.includes('429')) {
+          setCurrentUser(null);
+        }
       } finally {
         setIsLoading(false);
+        isCheckingAuthRef.current = false;
       }
     }, []);
     
 
     useEffect(() => {
-        checkAuthStatus();
-    }, [checkAuthStatus]);
+        // Only check auth status once on mount
+        if (!hasCheckedAuth.current && !isCheckingAuthRef.current) {
+            checkAuthStatus();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty dependency array - only run once on mount
 
 
     const login = useCallback(async (username: string, password: string) => {

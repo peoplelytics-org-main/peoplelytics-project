@@ -100,6 +100,7 @@ export class DatabaseService {
 
   /**
    * Create a new organization database
+   * MongoDB creates databases lazily, so we need to write data to trigger creation
    */
   public async createOrganizationDatabase(orgId: string): Promise<boolean> {
     try {
@@ -122,10 +123,35 @@ export class DatabaseService {
       ]);
 
       // Test connection by pinging
-      await connection.db.admin().ping();
+      if (!connection.db) {
+        throw new Error('Database connection not available');
+      }
+      await (connection.db as any).admin().ping();
 
-      logger.info(`✅ Created organization database: org_${normalizedOrgId}`);
-      return true;
+      // MongoDB creates databases lazily - we need to write data to actually create it
+      // Create an initialization collection with a metadata document
+      const initCollection = connection.db.collection('_init');
+      await initCollection.insertOne({
+        orgId: normalizedOrgId,
+        createdAt: new Date(),
+        initialized: true,
+        version: '1.0.0'
+      });
+
+      // Verify the database was created by checking if it exists
+      const admin = (connection.db as any).admin();
+      const databases = await admin.listDatabases();
+      const dbName = `org_${normalizedOrgId}`;
+      const dbExists = databases.databases.some((db: any) => db.name === dbName);
+
+      if (dbExists) {
+        logger.info(`✅ Created organization database: ${dbName}`);
+        return true;
+      } else {
+        logger.warn(`⚠️  Database ${dbName} connection established but database not yet created`);
+        // Still return true as the database will be created on first write
+        return true;
+      }
     } catch (error) {
       logger.error(`❌ Failed to create organization database for ${orgId}:`, error);
       return false;
@@ -149,7 +175,11 @@ export class DatabaseService {
         });
       }
 
-      await connection.db.admin().ping();
+      if (!connection.db) {
+        return false;
+      }
+      
+      await (connection.db as any).admin().ping();
       return true;
     } catch (error) {
       logger.error(`Failed to check organization database for ${orgId}:`, error);
@@ -172,12 +202,17 @@ export class DatabaseService {
         setTimeout(() => reject(new Error('Connection timeout')), 5000);
       });
 
-      const admin = adminConnection.db.admin();
+      if (!adminConnection.db) {
+        await adminConnection.close();
+        return [];
+      }
+
+      const admin = (adminConnection.db as any).admin();
       const databases = await admin.listDatabases();
       
       const orgDatabases = databases.databases
-        .filter(db => db.name.startsWith('org_'))
-        .map(db => db.name);
+        .filter((db: any) => db.name.startsWith('org_'))
+        .map((db: any) => db.name);
       
       await adminConnection.close();
       return orgDatabases;
@@ -237,14 +272,18 @@ export class DatabaseService {
         });
       }
 
-      const stats = await connection.db.stats();
+      if (!connection.db) {
+        return null;
+      }
+
+      const stats = await (connection.db as any).stats();
       return {
         database: `org_${normalizedOrgId}`,
-        collections: stats.collections,
-        dataSize: stats.dataSize,
-        storageSize: stats.storageSize,
-        indexes: stats.indexes,
-        objects: stats.objects
+        collections: stats.collections || 0,
+        dataSize: stats.dataSize || 0,
+        storageSize: stats.storageSize || 0,
+        indexes: stats.indexes || 0,
+        objects: stats.objects || 0
       };
     } catch (error) {
       logger.error(`Failed to get stats for organization ${orgId}:`, error);
@@ -266,8 +305,8 @@ export class DatabaseService {
 
     // Check core connection
     try {
-      if (this.coreConnection && this.coreConnection.readyState === 1) {
-        await this.coreConnection.db.admin().ping();
+      if (this.coreConnection && this.coreConnection.readyState === 1 && this.coreConnection.db) {
+        await (this.coreConnection.db as any).admin().ping();
         result.core = true;
       }
     } catch (error) {
@@ -277,8 +316,8 @@ export class DatabaseService {
     // Check organization connections
     for (const [orgId, connection] of this.orgConnections) {
       try {
-        if (connection.readyState === 1) {
-          await connection.db.admin().ping();
+        if (connection.readyState === 1 && connection.db) {
+          await (connection.db as any).admin().ping();
           result.organizations[orgId] = true;
         } else {
           result.organizations[orgId] = false;
@@ -312,17 +351,22 @@ export class DatabaseService {
       }
 
       // Get all collections in the database
-      const collections = await connection.db.listCollections().toArray();
+      if (!connection.db) {
+        throw new Error('Database connection not available');
+      }
+      
+      const db = connection.db as any;
+      const collections = await db.listCollections().toArray();
       logger.info(`Found ${collections.length} collections to delete in ${orgDbName}`);
 
       // Drop all collections
       for (const collection of collections) {
-        await connection.db.dropCollection(collection.name);
+        await db.dropCollection(collection.name);
         logger.info(`  ✓ Dropped collection: ${collection.name}`);
       }
 
       // Drop the entire database
-      await connection.db.dropDatabase();
+      await db.dropDatabase();
       logger.info(`  ✓ Dropped database: ${orgDbName}`);
 
       // Close and remove the connection from pool

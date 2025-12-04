@@ -6,6 +6,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { PlusCircle, Edit, Trash2, UserCog, X, Building, ChevronDown, ChevronUp, Search, Package, CheckCircle, Users, AlertCircle } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import Switch from '../components/ui/Switch';
 import { APP_PACKAGES } from '../constants';
 import { Link } from 'react-router-dom';
@@ -254,11 +255,14 @@ const PackageManagementView: React.FC<PackageManagementViewProps> = ({
     handleStatusToggle,
     handleEmployeeCountChange,
 }) => {
+    const { addNotification } = useNotifications();
+    
     const handlePackageChange = async (orgId: string, newPackage: PackageName) => {
         try {
           const response = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ package: newPackage })
           });
     
@@ -266,15 +270,22 @@ const PackageManagementView: React.FC<PackageManagementViewProps> = ({
             setOrganizations(prevOrgs => 
               prevOrgs.map(org => org.id === orgId ? { ...org, package: newPackage } : org)
             );
-            // Alert is optional, might be too noisy for a dropdown
-            console.log(`✅ Package updated for ${orgId}`);
+            addNotification({
+              type: 'success',
+              title: 'Package Updated',
+              message: `Package updated successfully for organization ${orgId}`
+            });
           } else {
             const data = await response.json();
             throw new Error(data.message || 'Failed to update package');
           }
         } catch (error: any) {
           console.error('Error updating package:', error);
-          alert('❌ ' + (error.message || 'Something went wrong'));
+          addNotification({
+            type: 'error',
+            title: 'Update Failed',
+            message: error.message || 'Something went wrong'
+          });
         }
       };
 
@@ -476,6 +487,7 @@ const PackageDetailsView: React.FC = () => {
 
 const UserManagementPage: React.FC = () => {
     const { currentUser } = useAuth();
+    const { addNotification } = useNotifications();
     const { 
         allOrganizations: organizations, 
         setAllOrganizations: setOrganizations, 
@@ -515,7 +527,9 @@ const UserManagementPage: React.FC = () => {
 
     const fetchUsers = async (orgId: string) => {
         try {
-          const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/allusers`);
+          const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/allusers`, {
+            credentials: 'include',
+          });
           const data = await response.json();
           if (data.success) {
             setUsers(prev => {
@@ -551,6 +565,7 @@ const UserManagementPage: React.FC = () => {
             const response = await fetch(`http://localhost:5000/api/organizations/${editingOrg.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify(payload)
             });
     
@@ -574,11 +589,19 @@ const UserManagementPage: React.FC = () => {
                   : o
               )
             );
-            alert("✅ Organization updated successfully!");
+            addNotification({
+              type: 'success',
+              title: 'Organization Updated',
+              message: 'Organization updated successfully!'
+            });
     
           } catch (error: any) {
             console.error('Error updating organization:', error);
-            alert("❌ " + (error.message || "Something went wrong"));
+            addNotification({
+              type: 'error',
+              title: 'Update Failed',
+              message: error.message || 'Something went wrong'
+            });
           }
           // --- END REFACTOR ---
     
@@ -588,6 +611,7 @@ const UserManagementPage: React.FC = () => {
             const response = await fetch("http://localhost:5000/api/organizations/add-organization", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
+              credentials: 'include', // Include cookies for authentication
               body: JSON.stringify(orgData),
             });
     
@@ -609,10 +633,18 @@ const UserManagementPage: React.FC = () => {
             };
     
             setOrganizations(orgs => [...orgs, newOrg]);
-            alert("✅ Organization created successfully!");
+            addNotification({
+              type: 'success',
+              title: 'Organization Created',
+              message: 'Organization created successfully!'
+            });
           } catch (error: any) {
             console.error(error);
-            alert("❌ " + (error.message || "Something went wrong"));
+            addNotification({
+              type: 'error',
+              title: 'Creation Failed',
+              message: error.message || 'Something went wrong'
+            });
           }
         }
     
@@ -625,6 +657,7 @@ const UserManagementPage: React.FC = () => {
                 const response = await fetch('http://localhost:5000/api/organizations',{
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', // Include cookies for authentication
                 });
                 const data = await response.json();
                 
@@ -661,21 +694,31 @@ const UserManagementPage: React.FC = () => {
                 const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/users/${userData.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(userData),
                 });
                 const data = await response.json();
     
                 if (data.success) {
                     setUsers(usrs => usrs.map(u => u.id === userData.id ? { ...u, ...data.data } : u));
-                    alert('✅ User updated successfully!');
+                    addNotification({
+                      type: 'success',
+                      title: 'User Updated',
+                      message: 'User updated successfully!'
+                    });
                 } else {
-                    alert('❌ ' + (data.message || 'Failed to update user'));
+                    addNotification({
+                      type: 'error',
+                      title: 'Update Failed',
+                      message: data.message || 'Failed to update user'
+                    });
                 }
             } else {
                 // Add new user
                 const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/add-user`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(userData),
                 });
                 const data = await response.json();
@@ -683,16 +726,28 @@ const UserManagementPage: React.FC = () => {
                 if (data.success) {
                     const org = organizations.find(o => o.id === orgId);
                     setUsers(usrs => [...usrs, { ...data.data, organizationName: org?.name, organizationId: orgId }]);
-                    alert('✅ User added successfully!');
+                    addNotification({
+                      type: 'success',
+                      title: 'User Added',
+                      message: 'User added successfully!'
+                    });
                 } else {
-                    alert('❌ ' + (data.message || 'Failed to add user'));
+                    addNotification({
+                      type: 'error',
+                      title: 'Add Failed',
+                      message: data.message || 'Failed to add user'
+                    });
                 }
             }
     
             setIsUserModalOpen(false);
         } catch (error: any) {
             console.error('Error submitting user:', error);
-            alert('❌ Error submitting user');
+            addNotification({
+              type: 'error',
+              title: 'Error',
+              message: 'Error submitting user'
+            });
         }
     };
 
@@ -702,6 +757,7 @@ const UserManagementPage: React.FC = () => {
                 const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/hard`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ confirm: 'DELETE' })
                 });
                 console.log(orgId);
@@ -711,13 +767,25 @@ const UserManagementPage: React.FC = () => {
                 if (data.success) {
                     setOrganizations(orgs => orgs.filter(o => o.id !== orgId));
                     setUsers(usrs => usrs.filter(u => u.organizationId !== orgId));
-                    alert('✅ Organization deleted successfully!');
+                    addNotification({
+                      type: 'success',
+                      title: 'Organization Deleted',
+                      message: 'Organization deleted successfully!'
+                    });
                 } else {
-                    alert('❌ ' + (data.message || 'Failed to delete organization'));
+                    addNotification({
+                      type: 'error',
+                      title: 'Delete Failed',
+                      message: data.message || 'Failed to delete organization'
+                    });
                 }
             } catch (error: any) {
                 console.error(error);
-                alert('❌ Error deleting organization');
+                addNotification({
+                  type: 'error',
+                  title: 'Error',
+                  message: 'Error deleting organization'
+                });
             }
         }
     };
@@ -728,19 +796,32 @@ const UserManagementPage: React.FC = () => {
                 const response = await fetch(`http://localhost:5000/api/organizations/${organizationId}/delete-user/${userId}`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                 });
                 console.log({"OrgId":organizationId, "UserId":userId})
                 const data = await response.json();
     
                 if (data.success) {
                     setUsers(usrs => usrs.filter(u => u.id !== userId));
-                    alert('✅ User deleted successfully!');
+                    addNotification({
+                      type: 'success',
+                      title: 'User Deleted',
+                      message: 'User deleted successfully!'
+                    });
                 } else {
-                    alert('❌ ' + (data.message || 'Failed to delete user'));
+                    addNotification({
+                      type: 'error',
+                      title: 'Delete Failed',
+                      message: data.message || 'Failed to delete user'
+                    });
                 }
             } catch (error: any) {
                 console.error('Error deleting user:', error);
-                alert('❌ Failed to delete user');
+                addNotification({
+                  type: 'error',
+                  title: 'Error',
+                  message: 'Failed to delete user'
+                });
             }
         }
     };
@@ -763,12 +844,14 @@ const UserManagementPage: React.FC = () => {
             const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/activate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
             });
     
             // Also update the subscription end date
             const updateResponse = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ 
                     subscriptionEndDate: newEndDate,
                     subscriptionStartDate: new Date().toISOString().split('T')[0]
@@ -791,11 +874,19 @@ const UserManagementPage: React.FC = () => {
                     return o;
                 }));
                 cancelReactivation();
-                alert('✅ Organization reactivated successfully!');
+                addNotification({
+                  type: 'success',
+                  title: 'Organization Reactivated',
+                  message: 'Organization reactivated successfully!'
+                });
             }
         } catch (error) {
             console.error('Error reactivating organization:', error);
-            alert('❌ Failed to reactivate organization');
+            addNotification({
+              type: 'error',
+              title: 'Reactivation Failed',
+              message: 'Failed to reactivate organization'
+            });
         }
     };
 
@@ -805,15 +896,24 @@ const UserManagementPage: React.FC = () => {
                 try {
                     const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/deactivate`, {
                         method: 'PATCH',
+                        credentials: 'include',
                     });
     
                     if (response.ok) {
                         setOrganizations(prev => prev.map(o => o.id === orgId ? { ...o, status: 'Inactive' } : o));
-                        alert('✅ Organization deactivated successfully!');
+                        addNotification({
+                          type: 'success',
+                          title: 'Organization Deactivated',
+                          message: 'Organization deactivated successfully!'
+                        });
                     }
                 } catch (error) {
                     console.error('Error deactivating organization:', error);
-                    alert('❌ Failed to deactivate organization');
+                    addNotification({
+                      type: 'error',
+                      title: 'Deactivation Failed',
+                      message: 'Failed to deactivate organization'
+                    });
                 }
             }
         } else {
@@ -826,11 +926,13 @@ const UserManagementPage: React.FC = () => {
     
                     const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/activate`, {
                         method: 'PATCH',
+                        credentials: 'include',
                     });
     
                     const updateResponse = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
                         body: JSON.stringify({
                             subscriptionStartDate: formatDate(today),
                             subscriptionEndDate: formatDate(sixMonthsFromNow)
@@ -848,11 +950,19 @@ const UserManagementPage: React.FC = () => {
                               } 
                             : o
                         ));
-                        alert('✅ Organization reactivated successfully!');
+                        addNotification({
+                          type: 'success',
+                          title: 'Organization Reactivated',
+                          message: 'Organization reactivated successfully!'
+                        });
                     }
                 } catch (error) {
                     console.error('Error reactivating organization:', error);
-                    alert('❌ Failed to reactivate organization');
+                    addNotification({
+                      type: 'error',
+                      title: 'Reactivation Failed',
+                      message: 'Failed to reactivate organization'
+                    });
                 }
             }
         }
@@ -865,6 +975,7 @@ const UserManagementPage: React.FC = () => {
             const response = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ employeeCount: isNaN(numCount) ? 0 : numCount })
             });
     

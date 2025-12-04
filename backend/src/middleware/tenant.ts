@@ -32,7 +32,7 @@ export const extractOrganizationId = (req: Request, res: Response, next: NextFun
     else if (req.query.orgId) {
       orgId = req.query.orgId as string;
     }
-    // Method 3: JWT token (if available in req.user)
+    // Method 3: JWT token (if available in req.user) - PRIORITY for authenticated requests
     else if ((req as any).user?.organizationId) {
       orgId = (req as any).user.organizationId;
     }
