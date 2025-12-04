@@ -20,7 +20,7 @@ export interface IReports extends Document {
   expiresAt: Date;
 }
 
-const ReportsSchema = new Schema<IReports>({
+export const ReportsSchema = new Schema<IReports>({
   reportId: {
     type: String,
     required: true,
@@ -115,5 +115,5 @@ ReportsSchema.set('toJSON', {
   virtuals: true
 });
 
-export const Reports = mongoose.model<IReports>('Reports', ReportsSchema);
+//export const Reports = mongoose.model<IReports>('Reports', ReportsSchema);
 

@@ -9,29 +9,14 @@ export interface IEmployee extends Document {
   hireDate: Date;
   terminationDate?: Date;
   terminationReason?: 'Voluntary' | 'Involuntary';
-  salary: number;
   gender: 'Male' | 'Female' | 'Other';
-  performanceRating: number; // 1-5
-  potentialRating: number; // 1-3
-  engagementScore: number; // 1-100
   managerId?: string;
-  snapshotDate: Date;
-  compensationSatisfaction?: number; // 1-100
-  benefitsSatisfaction?: number; // 1-100
-  managementSatisfaction?: number; // 1-100
-  trainingSatisfaction?: number; // 1-100
-  bonus?: number;
-  lastRaiseAmount?: number;
-  hasGrievance?: boolean;
-  weeklyHours?: number;
-  trainingCompleted: number;
-  trainingTotal: number;
   successionStatus: 'Ready Now' | 'Ready in 1-2 Years' | 'Future Potential' | 'Not Assessed';
   createdAt: Date;
   updatedAt: Date;
 }
 
-const EmployeeSchema = new Schema<IEmployee>({
+export const EmployeeSchema = new Schema<IEmployee>({
   employeeId: {
     type: String,
     required: true,
@@ -74,96 +59,19 @@ const EmployeeSchema = new Schema<IEmployee>({
     type: String,
     enum: ['Voluntary', 'Involuntary']
   },
-  salary: {
-    type: Number,
-    required: true,
-    min: 0
-  },
+ 
   gender: {
     type: String,
     enum: ['Male', 'Female', 'Other'],
     required: true,
     index: true
   },
-  performanceRating: {
-    type: Number,
-    required: true,
-    min: 1,
-    max: 5,
-    index: true
-  },
-  potentialRating: {
-    type: Number,
-    required: true,
-    min: 1,
-    max: 3,
-    index: true
-  },
-  engagementScore: {
-    type: Number,
-    required: true,
-    min: 1,
-    max: 100,
-    index: true
-  },
+  
   managerId: {
     type: String,
     index: true
   },
-  snapshotDate: {
-    type: Date,
-    required: true,
-    default: Date.now,
-    index: true
-  },
-  compensationSatisfaction: {
-    type: Number,
-    min: 1,
-    max: 100
-  },
-  benefitsSatisfaction: {
-    type: Number,
-    min: 1,
-    max: 100
-  },
-  managementSatisfaction: {
-    type: Number,
-    min: 1,
-    max: 100
-  },
-  trainingSatisfaction: {
-    type: Number,
-    min: 1,
-    max: 100
-  },
-  bonus: {
-    type: Number,
-    min: 0
-  },
-  lastRaiseAmount: {
-    type: Number,
-    min: 0
-  },
-  hasGrievance: {
-    type: Boolean,
-    default: false
-  },
-  weeklyHours: {
-    type: Number,
-    min: 1,
-    max: 168,
-    default: 40
-  },
-  trainingCompleted: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  trainingTotal: {
-    type: Number,
-    default: 8,
-    min: 0
-  },
+ 
   successionStatus: {
     type: String,
     enum: ['Ready Now', 'Ready in 1-2 Years', 'Future Potential', 'Not Assessed'],
@@ -208,4 +116,4 @@ EmployeeSchema.set('toJSON', {
   virtuals: true
 });
 
-export const Employee = mongoose.model<IEmployee>('Employee', EmployeeSchema);
+// export const Employee = mongoose.model<IEmployee>('Employee', EmployeeSchema);

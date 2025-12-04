@@ -12,17 +12,11 @@ export interface IJobPositions extends Document {
   heldBy?: string;
   positionType: 'Replacement' | 'New';
   budgetStatus: 'Budgeted' | 'Non-Budgeted';
-  description: string;
-  requirements: string[];
-  salaryRange: {
-    min: number;
-    max: number;
-  };
   createdAt: Date;
   updatedAt: Date;
 }
 
-const JobPositionsSchema = new Schema<IJobPositions>({
+export const JobPositionsSchema = new Schema<IJobPositions>({
   positionId: {
     type: String,
     required: true,
@@ -60,6 +54,7 @@ const JobPositionsSchema = new Schema<IJobPositions>({
   },
   hiredEmployeeId: {
     type: String,
+    ref:"employees",
     index: true
   },
   onHoldDate: {
@@ -68,6 +63,7 @@ const JobPositionsSchema = new Schema<IJobPositions>({
   },
   heldBy: {
     type: String,
+    ref:"employees",
     trim: true
   },
   positionType: {
@@ -82,27 +78,7 @@ const JobPositionsSchema = new Schema<IJobPositions>({
     required: true,
     index: true
   },
-  description: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  requirements: [{
-    type: String,
-    trim: true
-  }],
-  salaryRange: {
-    min: {
-      type: Number,
-      required: true,
-      min: 0
-    },
-    max: {
-      type: Number,
-      required: true,
-      min: 0
-    }
-  }
+  
 }, {
   timestamps: true,
   collection: 'job_positions'
@@ -132,5 +108,5 @@ JobPositionsSchema.set('toJSON', {
   virtuals: true
 });
 
-export const JobPositions = mongoose.model<IJobPositions>('JobPositions', JobPositionsSchema);
+//export const JobPositions = mongoose.model<IJobPositions>('JobPositions', JobPositionsSchema);
 

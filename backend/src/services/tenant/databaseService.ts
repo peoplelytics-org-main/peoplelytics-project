@@ -16,13 +16,28 @@ export class DatabaseService {
   }
 
   /**
+   * Get base MongoDB URI without database name
+   */
+  private getBaseUri(): string {
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/master_db';
+    // Remove any database name from URI
+    return mongoUri.replace(/\/[^\/]+$/, '');
+  }
+
+  /**
+   * Normalize organization ID (remove 'org_' prefix if exists)
+   */
+  private normalizeOrgId(orgId: string): string {
+    return orgId.startsWith('org_') ? orgId.substring(4) : orgId;
+  }
+
+  /**
    * Get or create connection to core database
    */
   public getCoreConnection(): Connection {
     if (!this.coreConnection) {
       const coreDbName = 'peoplelytics_core';
-      const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/peoplelytics';
-      const baseUri = mongoUri.replace('/peoplelytics', '');
+      const baseUri = this.getBaseUri();
       
       this.coreConnection = mongoose.createConnection(
         `${baseUri}/${coreDbName}`,
@@ -36,6 +51,10 @@ export class DatabaseService {
       this.coreConnection.on('error', (error) => {
         logger.error('Core database connection error:', error);
       });
+
+      this.coreConnection.on('connected', () => {
+        logger.info(`✅ Core database connected: ${coreDbName}`);
+      });
     }
 
     return this.coreConnection;
@@ -45,13 +64,14 @@ export class DatabaseService {
    * Get or create connection to organization-specific database
    */
   public getOrganizationConnection(orgId: string): Connection {
-    if (this.orgConnections.has(orgId)) {
-      return this.orgConnections.get(orgId)!;
+    const normalizedOrgId = this.normalizeOrgId(orgId);
+    
+    if (this.orgConnections.has(normalizedOrgId)) {
+      return this.orgConnections.get(normalizedOrgId)!;
     }
 
-    const orgDbName = `org_${orgId}`;
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/peoplelytics';
-    const baseUri = mongoUri.replace('/peoplelytics', '');
+    const orgDbName = `org_${normalizedOrgId}`;
+    const baseUri = this.getBaseUri();
     
     const orgConnection = mongoose.createConnection(
       `${baseUri}/${orgDbName}`,
@@ -63,14 +83,18 @@ export class DatabaseService {
     );
 
     orgConnection.on('error', (error) => {
-      logger.error(`Organization ${orgId} database connection error:`, error);
+      logger.error(`Organization ${normalizedOrgId} database connection error:`, error);
     });
 
     orgConnection.on('disconnected', () => {
-      logger.warn(`Organization ${orgId} database disconnected`);
+      logger.warn(`Organization ${normalizedOrgId} database disconnected`);
     });
 
-    this.orgConnections.set(orgId, orgConnection);
+    orgConnection.on('connected', () => {
+      logger.info(`✅ Organization database connected: ${orgDbName}`);
+    });
+
+    this.orgConnections.set(normalizedOrgId, orgConnection);
     return orgConnection;
   }
 
@@ -79,15 +103,31 @@ export class DatabaseService {
    */
   public async createOrganizationDatabase(orgId: string): Promise<boolean> {
     try {
-      const connection = this.getOrganizationConnection(orgId);
-      
-      // Test the connection
+      const normalizedOrgId = this.normalizeOrgId(orgId);
+      const connection = this.getOrganizationConnection(normalizedOrgId);
+
+      // Wait for connection with timeout
+      await Promise.race([
+        new Promise<void>((resolve, reject) => {
+          if (connection.readyState === 1) {
+            resolve();
+          } else {
+            connection.once('connected', () => resolve());
+            connection.once('error', (err) => reject(err));
+          }
+        }),
+        new Promise<void>((_, reject) => 
+          setTimeout(() => reject(new Error('Connection timeout')), 10000)
+        )
+      ]);
+
+      // Test connection by pinging
       await connection.db.admin().ping();
-      
-      logger.info(`✅ Created organization database: org_${orgId}`);
+
+      logger.info(`✅ Created organization database: org_${normalizedOrgId}`);
       return true;
     } catch (error) {
-      logger.error(`Failed to create organization database for ${orgId}:`, error);
+      logger.error(`❌ Failed to create organization database for ${orgId}:`, error);
       return false;
     }
   }
@@ -97,10 +137,22 @@ export class DatabaseService {
    */
   public async organizationDatabaseExists(orgId: string): Promise<boolean> {
     try {
-      const connection = this.getOrganizationConnection(orgId);
+      const normalizedOrgId = this.normalizeOrgId(orgId);
+      const connection = this.getOrganizationConnection(normalizedOrgId);
+      
+      // Wait for connection
+      if (connection.readyState !== 1) {
+        await new Promise<void>((resolve, reject) => {
+          connection.once('connected', () => resolve());
+          connection.once('error', (err) => reject(err));
+          setTimeout(() => reject(new Error('Connection timeout')), 5000);
+        });
+      }
+
       await connection.db.admin().ping();
       return true;
     } catch (error) {
+      logger.error(`Failed to check organization database for ${orgId}:`, error);
       return false;
     }
   }
@@ -110,10 +162,16 @@ export class DatabaseService {
    */
   public async listOrganizationDatabases(): Promise<string[]> {
     try {
-      const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/peoplelytics';
-      const baseUri = mongoUri.replace('/peoplelytics', '');
+      const baseUri = this.getBaseUri();
       const adminConnection = mongoose.createConnection(baseUri);
       
+      // Wait for admin connection
+      await new Promise<void>((resolve, reject) => {
+        adminConnection.once('connected', () => resolve());
+        adminConnection.once('error', (err) => reject(err));
+        setTimeout(() => reject(new Error('Connection timeout')), 5000);
+      });
+
       const admin = adminConnection.db.admin();
       const databases = await admin.listDatabases();
       
@@ -133,11 +191,12 @@ export class DatabaseService {
    * Close organization connection
    */
   public async closeOrganizationConnection(orgId: string): Promise<void> {
-    const connection = this.orgConnections.get(orgId);
+    const normalizedOrgId = this.normalizeOrgId(orgId);
+    const connection = this.orgConnections.get(normalizedOrgId);
     if (connection) {
       await connection.close();
-      this.orgConnections.delete(orgId);
-      logger.info(`Closed connection for organization: ${orgId}`);
+      this.orgConnections.delete(normalizedOrgId);
+      logger.info(`Closed connection for organization: ${normalizedOrgId}`);
     }
   }
 
@@ -166,10 +225,21 @@ export class DatabaseService {
    */
   public async getOrganizationStats(orgId: string): Promise<any> {
     try {
-      const connection = this.getOrganizationConnection(orgId);
+      const normalizedOrgId = this.normalizeOrgId(orgId);
+      const connection = this.getOrganizationConnection(normalizedOrgId);
+      
+      // Ensure connection is ready
+      if (connection.readyState !== 1) {
+        await new Promise<void>((resolve, reject) => {
+          connection.once('connected', () => resolve());
+          connection.once('error', (err) => reject(err));
+          setTimeout(() => reject(new Error('Connection timeout')), 5000);
+        });
+      }
+
       const stats = await connection.db.stats();
       return {
-        database: `org_${orgId}`,
+        database: `org_${normalizedOrgId}`,
         collections: stats.collections,
         dataSize: stats.dataSize,
         storageSize: stats.storageSize,
@@ -196,7 +266,7 @@ export class DatabaseService {
 
     // Check core connection
     try {
-      if (this.coreConnection) {
+      if (this.coreConnection && this.coreConnection.readyState === 1) {
         await this.coreConnection.db.admin().ping();
         result.core = true;
       }
@@ -207,8 +277,12 @@ export class DatabaseService {
     // Check organization connections
     for (const [orgId, connection] of this.orgConnections) {
       try {
-        await connection.db.admin().ping();
-        result.organizations[orgId] = true;
+        if (connection.readyState === 1) {
+          await connection.db.admin().ping();
+          result.organizations[orgId] = true;
+        } else {
+          result.organizations[orgId] = false;
+        }
       } catch (error) {
         logger.error(`Organization ${orgId} database health check failed:`, error);
         result.organizations[orgId] = false;
@@ -217,7 +291,55 @@ export class DatabaseService {
 
     return result;
   }
+
+  public async deleteOrganizationDatabase(orgId: string): Promise<boolean> {
+    try {
+      const normalizedOrgId = this.normalizeOrgId(orgId);
+      const orgDbName = `org_${normalizedOrgId}`;
+      
+      logger.info(`🗑️  Starting deletion of organization database: ${orgDbName}`);
+
+      // Get connection to the organization database
+      const connection = this.getOrganizationConnection(normalizedOrgId);
+      
+      // Wait for connection
+      if (connection.readyState !== 1) {
+        await new Promise<void>((resolve, reject) => {
+          connection.once('connected', () => resolve());
+          connection.once('error', (err) => reject(err));
+          setTimeout(() => reject(new Error('Connection timeout')), 5000);
+        });
+      }
+
+      // Get all collections in the database
+      const collections = await connection.db.listCollections().toArray();
+      logger.info(`Found ${collections.length} collections to delete in ${orgDbName}`);
+
+      // Drop all collections
+      for (const collection of collections) {
+        await connection.db.dropCollection(collection.name);
+        logger.info(`  ✓ Dropped collection: ${collection.name}`);
+      }
+
+      // Drop the entire database
+      await connection.db.dropDatabase();
+      logger.info(`  ✓ Dropped database: ${orgDbName}`);
+
+      // Close and remove the connection from pool
+      await connection.close();
+      this.orgConnections.delete(normalizedOrgId);
+      logger.info(`  ✓ Closed connection for: ${normalizedOrgId}`);
+
+      logger.info(`✅ Successfully deleted organization database: ${orgDbName}`);
+      return true;
+    } catch (error) {
+      logger.error(`❌ Failed to delete organization database for ${orgId}:`, error);
+      return false;
+    }
+  }
+
 }
 
-export default DatabaseService;
 
+
+export default DatabaseService;

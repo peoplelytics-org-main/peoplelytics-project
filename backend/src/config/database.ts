@@ -1,17 +1,20 @@
 import mongoose from 'mongoose';
 import { logger } from '@/utils/helpers/logger';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/peoplelytics';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/master_db';
 const MONGODB_OPTIONS = {
   maxPoolSize: 10,
   serverSelectionTimeoutMS: 5000,
   socketTimeoutMS: 45000,
-  bufferCommands: false,
-  bufferMaxEntries: 0,
+  // bufferCommands: false,
+  // bufferMaxEntries: 0,
 };
 
 export const connectDatabase = async (): Promise<void> => {
   try {
+
+    // Set mongoose options globally before connecting
+    mongoose.set('bufferCommands', false);
     await mongoose.connect(MONGODB_URI, MONGODB_OPTIONS);
     logger.info('✅ Connected to MongoDB successfully');
     
@@ -49,7 +52,7 @@ export const getOrganizationDatabase = (orgId: string): mongoose.Connection => {
   
   // Create a new connection for the organization database
   const orgConnection = mongoose.createConnection(
-    `${MONGODB_URI.replace('/peoplelytics', '')}/${orgDbName}`,
+    `${MONGODB_URI.replace('/master_db', '')}/${orgDbName}`,
     MONGODB_OPTIONS
   );
 

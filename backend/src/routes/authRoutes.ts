@@ -1,0 +1,17 @@
+import express from 'express';
+import { getCurrentUser, loginUser, logoutUser } from '../controllers/authController'; // Adjust path
+
+// Import middleware if you add a 'get profile' route
+// import { protect } from '../middleware/authMiddleware'; 
+
+const router = express.Router();
+
+// @route   POST /api/auth/login
+// @desc    Logs a user in
+router.post('/login', loginUser);
+router.post('/logout', logoutUser);
+router.get("/me", getCurrentUser);
+// @desc    A protected route to get the logged-in user's profile
+// router.get('/me', protect, getMyProfile); // You can add this controller
+
+export default router;

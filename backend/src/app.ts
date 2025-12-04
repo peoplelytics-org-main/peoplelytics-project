@@ -4,8 +4,11 @@ import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-import { errorHandler } from './middleware/errorHandler';
-import { logging } from './middleware/logging';
+import authRoutes from './routes/authRoutes';
+import orgRoutes from "./routes/orgRoutes"
+
+//import { errorHandler } from './middleware/errorHandler';
+//import { logging } from './middleware/logging';
 
 const app = express();
 
@@ -33,7 +36,8 @@ app.use(compression());
 
 // Logging middleware
 app.use(morgan('combined'));
-app.use(logging);
+
+//app.use(logging);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -45,12 +49,13 @@ app.get('/health', (req, res) => {
 });
 
 // API routes will be added here
-// app.use('/api/auth', authRoutes);
-// app.use('/api/organizations', organizationRoutes);
+ app.use('/api/auth',limiter, authRoutes);
+app.use('/api/organizations', orgRoutes);
+
 // app.use('/api/employees', employeeRoutes);
 // app.use('/api/analytics', analyticsRoutes);
 
 // Error handling middleware (must be last)
-app.use(errorHandler);
+//app.use(errorHandler);
 
 export default app;

@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IExitInterviews extends Document {
   employeeId: string;
+  orgId:string,
   primaryReasonForLeaving: string;
   secondaryReasonForLeaving?: string;
   management: {
@@ -24,11 +25,16 @@ export interface IExitInterviews extends Document {
   updatedAt: Date;
 }
 
-const ExitInterviewsSchema = new Schema<IExitInterviews>({
+export const ExitInterviewsSchema = new Schema<IExitInterviews>({
   employeeId: {
     type: String,
+    ref:"employees",
     required: true,
     index: true
+  },
+  orgId:{
+    type:String,
+    required:true,
   },
   primaryReasonForLeaving: {
     type: String,
@@ -141,5 +147,5 @@ ExitInterviewsSchema.set('toJSON', {
   virtuals: true
 });
 
-export const ExitInterviews = mongoose.model<IExitInterviews>('ExitInterviews', ExitInterviewsSchema);
+//export const ExitInterviews = mongoose.model<IExitInterviews>('ExitInterviews', ExitInterviewsSchema);
 

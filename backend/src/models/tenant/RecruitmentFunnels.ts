@@ -1,28 +1,40 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IRecruitmentFunnels extends Document {
+  rec_funnel_id:string;
   positionId: string;
+  orgId:string;
   shortlisted: number;
   interviewed: number;
   offersExtended: number;
   offersAccepted: number;
   joined: number;
-  conversionRates: {
-    shortlistToInterview: number;
-    interviewToOffer: number;
-    offerToAccept: number;
-    acceptToJoin: number;
-  };
+  // conversionRates: {
+  //   shortlistToInterview: number;
+  //   interviewToOffer: number;
+  //   offerToAccept: number;
+  //   acceptToJoin: number;
+  // };
   createdAt: Date;
   updatedAt: Date;
 }
 
-const RecruitmentFunnelsSchema = new Schema<IRecruitmentFunnels>({
+export const RecruitmentFunnelsSchema = new Schema<IRecruitmentFunnels>({
+  rec_funnel_id: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
   positionId: {
     type: String,
     required: true,
     unique: true,
     index: true
+  },
+  orgId:{
+    type:String,
+    required:true,
   },
   shortlisted: {
     type: Number,
@@ -54,32 +66,32 @@ const RecruitmentFunnelsSchema = new Schema<IRecruitmentFunnels>({
     min: 0,
     default: 0
   },
-  conversionRates: {
-    shortlistToInterview: {
-      type: Number,
-      min: 0,
-      max: 1,
-      default: 0
-    },
-    interviewToOffer: {
-      type: Number,
-      min: 0,
-      max: 1,
-      default: 0
-    },
-    offerToAccept: {
-      type: Number,
-      min: 0,
-      max: 1,
-      default: 0
-    },
-    acceptToJoin: {
-      type: Number,
-      min: 0,
-      max: 1,
-      default: 0
-    }
-  }
+  // conversionRates: {
+  //   shortlistToInterview: {
+  //     type: Number,
+  //     min: 0,
+  //     max: 1,
+  //     default: 0
+  //   },
+  //   interviewToOffer: {
+  //     type: Number,
+  //     min: 0,
+  //     max: 1,
+  //     default: 0
+  //   },
+  //   offerToAccept: {
+  //     type: Number,
+  //     min: 0,
+  //     max: 1,
+  //     default: 0
+  //   },
+  //   acceptToJoin: {
+  //     type: Number,
+  //     min: 0,
+  //     max: 1,
+  //     default: 0
+  //   }
+  // }
 }, {
   timestamps: true,
   collection: 'recruitment_funnels'
@@ -105,5 +117,5 @@ RecruitmentFunnelsSchema.set('toJSON', {
   virtuals: true
 });
 
-export const RecruitmentFunnels = mongoose.model<IRecruitmentFunnels>('RecruitmentFunnels', RecruitmentFunnelsSchema);
+//export const RecruitmentFunnels = mongoose.model<IRecruitmentFunnels>('RecruitmentFunnels', RecruitmentFunnelsSchema);
 

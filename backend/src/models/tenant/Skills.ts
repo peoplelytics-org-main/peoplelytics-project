@@ -1,21 +1,32 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ISkills extends Document {
+  skillLevelId:string;
   employeeId: string;
+  employeeName:string;
   skillName: string;
   skillLevel: 'Novice' | 'Beginner' | 'Competent' | 'Proficient' | 'Expert';
-  acquiredDate: Date;
-  lastAssessed: Date;
-  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const SkillsSchema = new Schema<ISkills>({
+export const SkillsSchema = new Schema<ISkills>({
+  skillLevelId:{
+    type:String,
+    required:true,
+    index:true
+  },
   employeeId: {
     type: String,
+    ref:"employees",
     required: true,
     index: true
+  },
+  employeeName:{
+    type:String,
+    ref:"employees",
+    required:true,
+    index:true,
   },
   skillName: {
     type: String,
@@ -29,23 +40,7 @@ const SkillsSchema = new Schema<ISkills>({
     required: true,
     index: true
   },
-  acquiredDate: {
-    type: Date,
-    required: true,
-    default: Date.now,
-    index: true
-  },
-  lastAssessed: {
-    type: Date,
-    required: true,
-    default: Date.now,
-    index: true
-  },
-  isActive: {
-    type: Boolean,
-    default: true,
-    index: true
-  }
+  
 }, {
   timestamps: true,
   collection: 'skills'
@@ -59,5 +54,5 @@ SkillsSchema.index({ skillName: 1, skillLevel: 1 });
 SkillsSchema.index({ employeeId: 1, isActive: 1 });
 SkillsSchema.index({ skillLevel: 1, isActive: 1 });
 
-export const Skills = mongoose.model<ISkills>('Skills', SkillsSchema);
+//export const Skills = mongoose.model<ISkills>('Skills', SkillsSchema);
 
