@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserRole } from '../types';
 import Button from '../components/ui/Button';
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import Input from '../components/ui/Input';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Building2 } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
+    // Ensure your AuthContext type definition for login accepts the 3rd argument
     const { login } = useAuth();
     const navigate = useNavigate();
+    
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    // New State for Org ID
+    const [organizationId, setOrganizationId] = useState(''); 
+    
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -21,10 +25,13 @@ const LoginPage: React.FC = () => {
         setError('');
         setIsLoading(true);
         try {
-            await login(username, password);
+            // Pass the organizationId (it can be empty string, backend handles that)
+            await login(username, password, organizationId);
             navigate('/app/home');
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Invalid credentials.');
+        } catch (err: any) {
+            // Handle specific backend message: "Invalid credentials. If you are a team member..."
+            const msg = err.response?.data?.message || err.message || 'Invalid credentials.';
+            setError(msg);
         } finally {
             setIsLoading(false);
         }
@@ -44,7 +51,30 @@ const LoginPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
-                        <Input label="Username or Email" id="username" type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="superadmin or admin@peoplelytics.com" required />
+                        
+                        {/* Organization ID Input */}
+                        <div>
+                            <Input 
+                                label="Organization ID (Not required for Superadmin)" 
+                                id="orgId" 
+                                type="text" 
+                                value={organizationId} 
+                                onChange={e => setOrganizationId(e.target.value)} 
+                                placeholder="e.g. org_innovate_inc" 
+                            />
+                            <p className="text-xs text-text-secondary mt-1">Required for organization members</p>
+                        </div>
+
+                        <Input 
+                            label="Username" 
+                            id="username" 
+                            type="text" 
+                            value={username} 
+                            onChange={e => setUsername(e.target.value)} 
+                            placeholder="Enter username" 
+                            required 
+                        />
+                        
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-text-secondary mb-1">
                                 Password
@@ -70,19 +100,39 @@ const LoginPage: React.FC = () => {
                             </div>
                         </div>
                         
-                        {error && <p className="text-sm text-red-400">{error}</p>}
+                        {error && (
+                            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                                <p className="text-sm text-red-600">{error}</p>
+                            </div>
+                        )}
 
                         <Button type="submit" isLoading={isLoading} disabled={isLoading} className="w-full">
-                            Sign In
+                            {isLoading ? 'Signing in...' : 'Sign In'}
                         </Button>
                     </form>
-                    <div className="mt-4 text-center text-xs text-text-secondary bg-card border border-border p-3 rounded-md">
-                        <h4 className="font-semibold text-text-primary mb-1">Demo Users</h4>
-                        <p>Try logging in as:</p>
-                        <p className="mt-1 font-mono">Super Admin:</p>
-                        <p className="font-mono">Username: <span className="text-primary-400">superadmin</span></p>
-                        <p className="font-mono">Password: <span className="text-primary-400">SuperAdmin@2024!</span></p>
-                        <p className="mt-2 font-mono">Or use email: <span className="text-primary-400">admin@peoplelytics.com</span></p>
+
+                    <div className="mt-6 text-xs text-text-secondary bg-card border border-border p-4 rounded-md space-y-3">
+                        <h4 className="font-semibold text-text-primary text-sm flex items-center gap-2">
+                            <Building2 className="w-3 h-3" /> Demo Credentials
+                        </h4>
+                        
+                        <div className="space-y-1">
+                            <p className="font-bold text-primary-600">Super Admin (Master DB)</p>
+                            <div className="grid grid-cols-[60px_1fr] gap-x-2">
+                                <span>User:</span> <span className="font-mono text-text-primary">superadmin@123</span>
+                                <span>Pass:</span> <span className="font-mono text-text-primary">SuperAdminP@ss123!</span>
+                                <span>Org ID:</span> <span className="font-mono text-text-secondary italic">(Leave Empty)</span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border pt-2 space-y-1">
+                            <p className="font-bold text-primary-600">Tenant User (Org DB)</p>
+                            <div className="grid grid-cols-[60px_1fr] gap-x-2">
+                                <span>User:</span> <span className="font-mono text-text-primary">amnakhan@innovateinc.com</span>
+                                <span>Pass:</span> <span className="font-mono text-text-primary">password123</span>
+                                <span>Org ID:</span> <span className="font-mono text-text-primary">org_innovate_inc</span>
+                            </div>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -91,9 +141,3 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
-
-// <h4 className="font-semibold text-text-primary mb-1">Demo Users</h4>
-// <p>Try logging in as:</p>
-// <p className="mt-1 font-mono">User: <span className="text-primary-400">superadmin@peoplelytics.com</span></p>
-// <p className="font-mono">User: <span className="text-primary-400">amnakhan@innovateinc.com</span></p>
-// <p className="font-mono">Password: <span className="text-primary-400">password123</span></p>

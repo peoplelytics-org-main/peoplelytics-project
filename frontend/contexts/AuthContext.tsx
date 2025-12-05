@@ -5,7 +5,7 @@ import type { User, UserRole } from '../types';
 interface AuthContextType {
     currentUser: User | null;
     isLoggedIn: boolean;
-    login: (username: string, password: string) => Promise<void>;
+    login: (username: string, password: string,organizationId:string) => Promise<void>;
     logout: () => void;
     isLoading: boolean;
 }
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []); // Empty dependency array - only run once on mount
 
 
-    const login = useCallback(async (username: string, password: string) => {
+    const login = useCallback(async (username: string, password: string,organizationId?:string) => {
         // This function now calls the real API using fetch
         try {
           const response = await fetch('http://localhost:5000/api/auth/login', {
@@ -104,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ username, password ,organizationId}),
             // ❗️ This is critical for receiving the httpOnly cookie
             credentials: 'include',
           });

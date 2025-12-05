@@ -2,7 +2,7 @@ import express from 'express';
 import {addOrganization} from "../controllers/orgController"
 import DatabaseService from '../services/tenant/databaseService';
 import { logger } from '../utils/helpers/logger';
-import {addUserToOrganization, deleteUserFromOrganization, getAllUsersFromOrganization, getUserById, updateUserInOrganization} from "../controllers/addUserToOrganization"
+import {addUserToOrganization, deleteUserFromOrganization, getAllUsersFromAllOrganizations, getAllUsersFromOrganization, getUserById, updateUserInOrganization} from "../controllers/addUserToOrganization"
 import { deleteOrganization, getAllOrganizations, getOrganizationById, listOrganizationDatabases, restoreOrganization, softDeleteOrganization, updateOrganization, getOrganizationStats, checkOrganizationHealth } from '../controllers/orgController';
 import {
   validateCreateOrganization,
@@ -147,6 +147,9 @@ router.get("/:orgId/allusers", getAllUsersFromOrganization);
 router.get("/:orgId/users/:userId", getUserById);
 router.put("/:orgId/users/:userId", updateUserInOrganization);
 router.delete("/:orgId/delete-user/:userId", deleteUserFromOrganization);
+
+// Get ALL users from ALL organizations
+router.get('/users/global/all', getAllUsersFromAllOrganizations);
 
 
 export default router;

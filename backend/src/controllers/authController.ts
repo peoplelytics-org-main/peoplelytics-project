@@ -6,6 +6,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { User, IUser } from "../models/shared/User"; // Import your TS model
 
+import { DatabaseService } from "../services/tenant/databaseService";
+
+const dbService = DatabaseService.getInstance();
 /**
  * Generates a JWT for a given user.
  */
@@ -35,81 +38,106 @@ const generateToken = (user: IUser) => {
  * @route   POST /api/auth/login
  * @access  Public
  */
+
+
 export const loginUser = async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
+    // Added organizationId to inputs (Required for Tenant Users)
+    const { username, password, organizationId } = req.body;
 
     console.log("\n--- NEW LOGIN ATTEMPT ---");
-    console.log("Time:", new Date().toLocaleTimeString());
-    console.log("Request Body:", req.body);
 
-    // 1. Check if username and password exist
     if (!username || !password) {
-      console.log("DEBUG: Failed step 1 (missing username or password)");
-      return res
-        .status(400)
-        .json({ message: "Please provide username and password" });
+      return res.status(400).json({ message: "Please provide username and password" });
     }
 
-    // 2. Find the user by username OR email
     const lowercaseInput = username.toLowerCase();
-    console.log("DEBUG: Querying database for user:", lowercaseInput);
-
-    // Try to find user by username first, then by email
-    let user = await User.findOne({ "username": lowercaseInput }).select(
-      "+password"
-    );
     
-    // If not found by username, try to find by email
+    // =========================================================
+    // STEP 1: ATTEMPT MASTER DB LOGIN (Super Admin)
+    // =========================================================
+    // We explicitly check the Master DB first
+    let user: any = await User.findOne({ 
+      $or: [{ username: lowercaseInput }, { "profile.email": lowercaseInput }] 
+    }).select("+password");
+
+    let isTenantUser = false;
+    let activeOrgId = null;
+
+    // =========================================================
+    // STEP 2: IF NOT MASTER, ATTEMPT TENANT DB LOGIN
+    // =========================================================
     if (!user) {
-      user = await User.findOne({ "profile.email": lowercaseInput }).select(
-        "+password"
-      );
+      if (!organizationId) {
+        // If not in Master, and no Org ID provided, we cannot proceed
+        return res.status(401).json({ message: "Invalid credentials or missing Organization ID." });
+      }
+
+      console.log(`DEBUG: User not in Master. Checking Tenant DB: ${organizationId}`);
+
+      try {
+        // Get the User Model specifically connected to this Organization's DB
+        // This uses the helper method we added to DatabaseService
+        const TenantUser = dbService.getTenantUserModel(organizationId);
+        
+        user = await TenantUser.findOne({ 
+          $or: [{ username: lowercaseInput }, { "profile.email": lowercaseInput }] 
+        }).select("+password");
+
+        if (user) {
+            isTenantUser = true;
+            activeOrgId = organizationId;
+        }
+
+      } catch (err) {
+        console.error("Error connecting to tenant DB:", err);
+        return res.status(500).json({ message: "Error accessing organization database." });
+      }
     }
 
-    // 3. Check if user exists
+    // =========================================================
+    // STEP 3: VALIDATE PASSWORD
+    // =========================================================
     if (!user) {
-      console.log("DEBUG: Failed step 3 (User not found in database)");
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    console.log("DEBUG: User was found:", user.username);
-    console.log(
-      "DEBUG: Hashed password from DB:",
-      user.password.substring(0, 10) + "..."
-    ); // Show first 10 chars
-
-    // 3. ...and password is correct
-    console.log("DEBUG: Comparing provided password with hashed password...");
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    console.log("DEBUG: Password match result:", isMatch);
-
-    if (!isMatch) {
-      console.log("DEBUG: Failed step 3 (Password comparison FAILED)");
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    // 4. Check if user account is active
     if (!user.isActive) {
-      console.log("DEBUG: Failed step 4 (User is not active)");
       return res.status(403).json({ message: "Your account is deactivated." });
     }
 
-    // 5. User is valid!
-    console.log("DEBUG: SUCCESS! User is valid. Generating token...");
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid username or password" });
+    }
+
+    // =========================================================
+    // STEP 4: GENERATE TOKEN
+    // =========================================================
+    
+    // Update lastLogin (Save back to the correct DB)
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });
 
-    const token = generateToken(user);
+    // Payload: The 'organizationId' claim is crucial for the middleware later
+    const payload = {
+      id: user._id,
+      username: user.username,
+      role: user.role,
+      // If SuperAdmin, orgId is null/MASTER. If Tenant, it's the specific Org ID.
+      organizationId: isTenantUser ? activeOrgId : "MASTER", 
+      permissions: user.permissions,
+    };
 
-    // ✅ After generating the token
+    const token = jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: "7d" });
+
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+
     return res.status(200).json({
       message: "Login successful",
       token,
@@ -117,11 +145,12 @@ export const loginUser = async (req: Request, res: Response) => {
         id: user._id,
         username: user.username,
         role: user.role,
-        organizationId: user.organizationId,
-        email: user.profile.email,
-        preferences: user.preferences,
+        organizationId: payload.organizationId,
+        email: user.profile?.email,
+        isSuperAdmin: !isTenantUser
       },
     });
+
   } catch (error) {
     console.error("Login Error:", error);
     return res.status(500).json({ message: "Server error during login" });
@@ -151,27 +180,21 @@ export const logoutUser = (req: Request, res: Response) => {
 };
 
 export const getCurrentUser = async (req: Request, res: Response) => {
-  try {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ message: "Not authenticated" });
-
-    const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
-    const user = await User.findById(decoded.id);
-
-    if (!user) return res.status(401).json({ message: "User not found" });
-
-    // ✅ Wrap the response in a "user" object to match frontend expectations
-    return res.json({
-      user: {
-        id: user._id,
-        username: user.username,
-        role: user.role,
-        organizationId: user.organizationId,
-        email: user.profile.email,
-        preferences: user.preferences,
-      }
-    });
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid token" });
+  // req.user is already populated by the 'protect' middleware
+  // regardless of which database they came from.
+  
+  if (!req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
   }
+
+  return res.json({
+    user: {
+      id: req.user._id,
+      username: req.user.username,
+      role: req.user.role,
+      organizationId: req.user.organizationId,
+      email: req.user.profile?.email,
+      preferences: req.user.preferences,
+    }
+  });
 };

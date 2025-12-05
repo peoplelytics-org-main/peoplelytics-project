@@ -1,75 +1,56 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import dotenv from "dotenv"
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { User } from "../models/shared/User";
+import { DatabaseService } from "../services/tenant/databaseService";
 
-dotenv.config();
-import { User } from '../models/shared/User'; // Import your TS model
+const dbService = DatabaseService.getInstance();
 
-// Extend the Express Request type to include our 'user' payload
-export interface AuthenticatedRequest extends Request {
-  user?: jwt.JwtPayload | {
-    id: string;
-    username: string;
-    role: string;
-    organizationId: string;
-  };
+// Extend Express Request interface
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
 }
 
-/**
- * Protects routes by verifying the JWT.
- * Supports both Bearer token (Authorization header) and HTTP-only cookies.
- * Attaches the decoded user payload to req.user.
- */
-export const protect = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  let token: string | undefined;
+export const protect = async (req: Request, res: Response, next: NextFunction) => {
+  let token;
 
-  // Method 1: Check for Bearer token in Authorization header
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    token = authHeader.split(' ')[1];
-  }
-  // Method 2: Check for token in HTTP-only cookie
-  else if (req.cookies && req.cookies.token) {
+  if (req.cookies.token) {
     token = req.cookies.token;
+  } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
   }
 
   if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token provided' });
+    return res.status(401).json({ message: "Not authorized, no token" });
   }
 
   try {
-    // Verify the token using your secret
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as jwt.JwtPayload;
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
 
-    // Find the user by ID from the token
-    const freshUser = await User.findById(decoded.id);
-
-    if (!freshUser || !freshUser.isActive) {
-      return res.status(401).json({ message: 'User not found or deactivated' });
+    // SCENARIO 1: SUPER ADMIN (Master DB)
+    if (!decoded.organizationId || decoded.organizationId === "MASTER") {
+       req.user = await User.findById(decoded.id).select("-password");
+    } 
+    // SCENARIO 2: TENANT USER (Tenant DB)
+    else {
+        // Dynamically get the model for this specific organization
+        const TenantUser = dbService.getTenantUserModel(decoded.organizationId);
+        req.user = await TenantUser.findById(decoded.id).select("-password");
+        
+        // Optional: Attach orgId to request for use in controllers
+        // req.organizationId = decoded.organizationId; 
     }
 
-    // Attach the user payload to the request object
-    req.user = decoded;
+    if (!req.user) {
+         return res.status(401).json({ message: "User not found" });
+    }
 
-    return next(); // All good, proceed
-
+    next();
   } catch (error) {
-    console.error('Token verification failed:', error);
-    return res.status(401).json({ message: 'Not authorized, token failed' });
+    console.error("Auth Middleware Error:", error);
+    res.status(401).json({ message: "Not authorized, token failed" });
   }
-};
-
-/**
- * Middleware to restrict routes to specific roles.
- * Example: router.get('/admin', protect, restrictTo('Super Admin', 'Org Admin'), ...);
- */
-export const restrictTo = (...roles: string[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    if (!req.user || !roles.includes((req.user as any).role)) {
-      return res.status(403).json({ 
-        message: 'You do not have permission to perform this action' 
-      });
-    }
-    return next();
-  };
 };

@@ -1,5 +1,7 @@
 import mongoose, { Connection } from 'mongoose';
 import { logger } from '../../utils/helpers/logger';
+import { Schema } from "mongoose";
+import { UserSchema, IUser } from "../../models/shared/User";
 
 export class DatabaseService {
   private static instance: DatabaseService;
@@ -29,6 +31,20 @@ export class DatabaseService {
    */
   private normalizeOrgId(orgId: string): string {
     return orgId.startsWith('org_') ? orgId.substring(4) : orgId;
+  }
+
+  public getTenantUserModel(orgId: string): mongoose.Model<IUser> {
+    // 1. Get the specific connection
+    const connection = this.getOrganizationConnection(orgId);
+
+    // 2. Check if the model is already compiled on this connection to avoid OverwriteModelError
+    // Mongoose stores models on the connection instance
+    if (connection.models.User) {
+      return connection.models.User as mongoose.Model<IUser>;
+    }
+
+    // 3. Compile the model on this specific connection
+    return connection.model<IUser>('User', UserSchema);
   }
 
   /**

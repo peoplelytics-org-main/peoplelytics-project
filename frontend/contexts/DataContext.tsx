@@ -9,10 +9,10 @@ import type { Department } from '../services/api/departmentsApi';
 import type { Salary } from '../services/api/salaryApi';
 import type { Account } from '../services/api/accountsApi';
 import type { Expense } from '../services/api/expensesApi';
+import { usersApi } from '@/services/api/usersApi';
 import type { Leave } from '../services/api/leavesApi';
 import { useAuth } from './AuthContext';
 import { APP_PACKAGES } from '../constants';
-import { MOCK_ORGANIZATIONS, MOCK_USERS } from '../constants/data';
 import { employeeApi } from '../services/api/employeeApi';
 import { attendanceApi } from '../services/api/attendanceApi';
 import { jobPositionsApi } from '../services/api/jobPositionsApi';
@@ -113,7 +113,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isLoadingLeaves, setIsLoadingLeaves] = useState(false);
     const [allOrganizations, setAllOrganizations] = useState<Organization[]>([]);
     const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(false);
-    const [allUsers, setAllUsers] = useState<User[]>(MOCK_USERS);
+    const [allUsers, setAllUsers] = useState<User[]>([]); 
+    const [isLoadingUsers, setIsLoadingUsers] = useState(false);
     
     const [isDataAnonymized, setIsDataAnonymized] = useState(false);
     const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
@@ -121,41 +122,88 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isLoadingAttendance, setIsLoadingAttendance] = useState(false);
     
     const canAnonymize = currentUser?.role === 'Super Admin' || currentUser?.role === 'Org Admin';
+    
+    useEffect(() => {
+        const fetchGlobalUsers = async () => {
+            // Guard clause: Only Super Admin should fetch all global users
+            if (currentUser?.role !== 'Super Admin') return;
+
+            setIsLoadingUsers(true);
+            try {
+                const usersData = await usersApi.getAllGlobalUsers();
+                
+                // Map backend data to frontend structure if necessary
+                const mappedUsers = usersData.map((u: any) => ({
+                    ...u,
+                    id: u._id || u.id, // Handle MongoDB _id vs frontend id
+                    organizationId: u.organizationId || u._sourceOrgId 
+                }));
+
+                setAllUsers(mappedUsers);
+            } catch (error) {
+                console.error("Failed to fetch global users:", error);
+                // Optional: Add toast notification here
+            } finally {
+                setIsLoadingUsers(false);
+            }
+        };
+
+        if (currentUser) {
+            fetchGlobalUsers();
+        }
+    }, [currentUser]);
 
     // Determine the active organization ID
     const effectiveOrgId = useMemo(() => {
         return currentUser?.role === 'Super Admin' ? activeOrganizationId : currentUser?.organizationId || null;
     }, [currentUser, activeOrganizationId]);
 
-    // Fetch employees from API when organization changes
     useEffect(() => {
-        if (!effectiveOrgId || !currentUser) {
-            setAllEmployeeData([]);
-            return;
-        }
+        const fetchEmployees = async () => {
+            if (!currentUser || !effectiveOrgId) return;
 
-        setIsLoadingEmployees(true);
-        employeeApi.getAll({ limit: 1000 }, effectiveOrgId) // Pass organization ID for Super Admin
-            .then((response) => {
-                if (response.success && response.data) {
-                    const mappedEmployees = response.data.data.map((emp: any) => 
-                        mapBackendEmployeeToFrontend(emp, effectiveOrgId)
-                    );
-                    setAllEmployeeData(mappedEmployees);
+            console.log("1. Starting Fetch for Org:", effectiveOrgId); // Debug
+            setIsLoadingEmployees(true);
+            
+            try {
+                const response = await employeeApi.getAll({ limit: 1000 }, effectiveOrgId);
+                
+                console.log("2. Raw API Response:", response); // Debug: Check the structure in browser console
+
+                if (response.success) {
+                    // CRITICAL: Check if data is nested deeply or directly
+                    // Option A: response.data.data (Pagination structure)
+                    // Option B: response.data (Direct array)
+                    const potentialArray = response.data?.data || response.data;
+                    
+                    console.log("3. Potential Array found:", potentialArray); // Debug
+
+                    if (Array.isArray(potentialArray)) {
+                        const mappedEmployees = potentialArray.map((emp: any) => 
+                            mapBackendEmployeeToFrontend(emp, effectiveOrgId)
+                        );
+                        console.log("4. Mapped Data:", mappedEmployees); // Debug
+                        setAllEmployeeData(mappedEmployees);
+                    } else {
+                        console.warn("⚠️ Data found was not an array. It was:", typeof potentialArray);
+                        setAllEmployeeData([]);
+                    }
                 } else {
-                    console.error('Failed to fetch employees:', response.error);
-                    // Fallback to empty array or mock data for development
-                    setAllEmployeeData([]);
+                    console.error("API returned success: false", response);
                 }
-            })
-            .catch((error) => {
-                console.error('Error fetching employees:', error);
-                setAllEmployeeData([]);
-            })
-            .finally(() => {
+            } catch (error) {
+                console.error("❌ Fetch Error:", error);
+            } finally {
                 setIsLoadingEmployees(false);
-            });
+            }
+        };
+
+        fetchEmployees();
     }, [effectiveOrgId, currentUser]);
+
+    
+
+    
 
     // Fetch attendance from API when organization changes
     useEffect(() => {
@@ -186,6 +234,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
     }, [effectiveOrgId, currentUser]);
 
+    
     // Fetch job positions from API when organization changes
     useEffect(() => {
         if (!effectiveOrgId || !currentUser) {
@@ -632,7 +681,26 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ]);
     }, []);
 
-
+    // Fetch the current user's organization (for non-Super Admins)
+useEffect(() => {
+    if (!currentUser) return;
+    
+    // If not Super Admin, fetch their own organization
+    if (currentUser.role !== 'Super Admin' && currentUser.organizationId) {
+        organizationsApi.getById(currentUser.organizationId)
+            .then((response) => {
+                if (response.success && response.data) {
+                    const mappedOrg = mapBackendOrganizationToFrontend(response.data);
+                    setAllOrganizations([mappedOrg]);
+                } else {
+                    console.error('Failed to fetch user organization:', response.error);
+                }
+            })
+            .catch((error) => {
+                console.error('Error fetching user organization:', error);
+            });
+    }
+}, [currentUser]);
     const { employeeData, historicalEmployeeData, attendanceData, jobPositions, recruitmentFunnels, skills, performanceReviews, exitInterviews, reports, analytics, departments, salaries, accounts, expenses, leaves, currentPackageFeatures, currentOrgHeadcount, currentOrgHeadcountLimit, currentPackageRoleLimits, activeOrganization } = useMemo(() => {
         const orgId = currentUser?.role === 'Super Admin' ? activeOrganizationId : currentUser?.organizationId;
 
