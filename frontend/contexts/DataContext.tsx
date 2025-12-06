@@ -36,6 +36,7 @@ interface DataContextType {
     historicalEmployeeData: Employee[]; // This is ALL historical data for the org
     appendEmployeeData: (data: Employee[]) => void;
     replaceEmployeeDataForOrg: (orgId: string, data: Employee[]) => void;
+    globalHeadcount: number;
     attendanceData: AttendanceRecord[];
     setAttendanceData: React.Dispatch<React.SetStateAction<AttendanceRecord[]>>;
     jobPositions: JobPosition[];
@@ -88,6 +89,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [allEmployeeData, setAllEmployeeData] = useState<Employee[]>([]);
     const [allAttendanceData, setAllAttendanceData] = useState<AttendanceRecord[]>([]);
     const [allJobPositions, setAllJobPositions] = useState<JobPosition[]>([]);
+    const [globalHeadcount, setGlobalHeadcount] = useState<number>(0);
     const [isLoadingJobPositions, setIsLoadingJobPositions] = useState(false);
     const [allRecruitmentFunnels, setAllRecruitmentFunnels] = useState<RecruitmentFunnel[]>([]);
     const [isLoadingRecruitmentFunnels, setIsLoadingRecruitmentFunnels] = useState(false);
@@ -122,6 +124,50 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [isLoadingAttendance, setIsLoadingAttendance] = useState(false);
     
     const canAnonymize = currentUser?.role === 'Super Admin' || currentUser?.role === 'Org Admin';
+
+    useEffect(() => {
+        const fetchGlobalEmployees = async () => {
+            // Guard clause: Only Super Admin should fetch all global employees
+            if (currentUser?.role !== 'Super Admin') return;
+
+            // Optional: Re-use your existing loading state or create a new one
+            setIsLoadingEmployees(true); 
+
+            try {
+                // IMPORTANT: Ensure you added 'getGlobalAll' to your frontend employeeApi service
+                const response = await employeeApi.getGlobalEmployees(); 
+
+                
+                if (response.success && Array.isArray(response.data)) {
+                    
+                    // Logic to Filter for LATEST Unique Employees (Deduplicate history)
+                    const latestEmployeeMap = new Map<string, any>();
+                    
+                    response.data.forEach((record: any) => {
+                        // Create a unique key using Source Org ID + Employee ID
+                        const key = `${record._sourceOrgId}-${record.employeeId || record.id}`;
+                        const existing = latestEmployeeMap.get(key);
+                        
+                        // Keep only the most recent snapshot
+                        if (!existing || (record.snapshotDate && (!existing.snapshotDate || new Date(record.snapshotDate) >= new Date(existing.snapshotDate)))) {
+                            latestEmployeeMap.set(key, record);
+                        }
+                    });
+
+                    
+                    setGlobalHeadcount(latestEmployeeMap.size);
+                }
+            } catch (error) {
+                console.error("Failed to fetch global employees:", error);
+            } finally {
+                setIsLoadingEmployees(false);
+            }
+        };
+
+        if (currentUser) {
+            fetchGlobalEmployees();
+        }
+    }, [currentUser]);
     
     useEffect(() => {
         const fetchGlobalUsers = async () => {
@@ -168,7 +214,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             try {
                 const response = await employeeApi.getAll({ limit: 1000 }, effectiveOrgId);
                 
-                console.log("2. Raw API Response:", response); // Debug: Check the structure in browser console
 
                 if (response.success) {
                     // CRITICAL: Check if data is nested deeply or directly
@@ -779,6 +824,7 @@ useEffect(() => {
 
     const value = useMemo(() => ({
         employeeData,
+        globalHeadcount,
         historicalEmployeeData,
         appendEmployeeData,
         replaceEmployeeDataForOrg,
@@ -823,7 +869,7 @@ useEffect(() => {
         currentOrgHeadcount,
         currentOrgHeadcountLimit,
         currentPackageRoleLimits,
-    }), [employeeData, historicalEmployeeData, appendEmployeeData, replaceEmployeeDataForOrg, attendanceData, jobPositions, recruitmentFunnels, skills, performanceReviews, exitInterviews, reports, analytics, departments, salaries, accounts, expenses, leaves, displayedData, isDataAnonymized, toggleAnonymization, canAnonymize, activeOrganizationId, activeOrganization, allOrganizations, allUsers, currentPackageFeatures, currentOrgHeadcount, currentOrgHeadcountLimit, currentPackageRoleLimits]);
+    }), [employeeData,globalHeadcount, historicalEmployeeData, appendEmployeeData, replaceEmployeeDataForOrg, attendanceData, jobPositions, recruitmentFunnels, skills, performanceReviews, exitInterviews, reports, analytics, departments, salaries, accounts, expenses, leaves, displayedData, isDataAnonymized, toggleAnonymization, canAnonymize, activeOrganizationId, activeOrganization, allOrganizations, allUsers, currentPackageFeatures, currentOrgHeadcount, currentOrgHeadcountLimit, currentPackageRoleLimits]);
     
     return (
         <DataContext.Provider value={value}>

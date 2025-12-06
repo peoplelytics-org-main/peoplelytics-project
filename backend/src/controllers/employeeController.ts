@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
+import { Organization } from "../models/shared/Organization";
 import { Connection } from 'mongoose';
 import { 
   getEmployeeModel, 
@@ -15,7 +16,6 @@ import {
 } from '../services/employeeService';
 import { logger } from '../utils/helpers/logger';
 import { DatabaseService } from '../services/tenant/databaseService';
-
 /**
  * Helper to get organization connection from request
  */
@@ -313,6 +313,67 @@ export const getEmployeeStatistics = async (req: Request, res: Response, next: N
       success: false,
       error: error.message || 'Failed to fetch employee statistics',
     });
+  }
+};
+
+export const getAllEmployeesFromAllOrganizations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // FIX 1: Initialize the DatabaseService instance
+    const dbService = DatabaseService.getInstance();
+
+    // 2. Fetch all registered organizations from Master DB
+    const organizations = await Organization.find({});
+
+    if (!organizations || organizations.length === 0) {
+      res.json({ success: true, count: 0, data: [] });
+      return;
+    }
+
+    // 3. Create an array of promises to fetch employees from each Tenant DB
+    const employeePromises = organizations.map(async (org) => {
+      try {
+        // FIX 2: Use the existing pattern to get the model
+        // A. Get the connection for this specific org
+        const connection = dbService.getOrganizationConnection(org.orgId);
+        
+        // B. Use the helper imported at the top of this file to get the Model
+        const EmployeeModel = getEmployeeModel(connection);
+        
+        // 4. Fetch all employees (using .lean() for performance)
+        const employees = await EmployeeModel.find({}).lean();
+        
+        // 5. Attach source org ID
+        return employees.map((emp: any) => ({
+          ...emp,
+          _sourceOrgId: org.orgId,
+          organizationId: emp.organizationId || org.orgId 
+        }));
+
+      } catch (err) {
+        // Log specific tenant failure but allow others to succeed
+        logger.warn(`Failed to fetch employees for org: ${org.orgId}`, err);
+        return []; 
+      }
+    });
+
+    // 6. Wait for all DB queries to finish
+    const results = await Promise.all(employeePromises);
+
+    // 7. Flatten the array of arrays into a single list
+    const allEmployees = results.flat();
+
+    logger.info(`Fetched ${allEmployees.length} employees across ${organizations.length} organizations.`);
+
+    res.json({ 
+      success: true, 
+      totalOrganizations: organizations.length,
+      totalEmployees: allEmployees.length, 
+      data: allEmployees 
+    });
+
+  } catch (error) {
+    logger.error("Error fetching global employees:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch global employees" });
   }
 };
 

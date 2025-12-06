@@ -41,6 +41,10 @@ export const employeeApi = {
     return apiGet<EmployeeListResponse>('/employees', filters, organizationId);
   },
 
+  getGlobalEmployees: async (filters?: EmployeeFilters, organizationId?: string): Promise<ApiResponse<EmployeeListResponse>> => {
+    return apiGet<EmployeeListResponse>('/employees/allEmployees', filters, organizationId);
+  },
+
   /**
    * Get employee by ID
    */

@@ -7,6 +7,7 @@ import {
   deleteEmployeeHandler,
   bulkCreateEmployeesHandler,
   getEmployeeStatistics,
+  getAllEmployeesFromAllOrganizations
 } from '../controllers/employeeController';
 import {
   validateGetEmployees,
@@ -31,6 +32,7 @@ router.get('/stats', getEmployeeStatistics);
 
 // Get all employees with pagination and filters
 router.get('/', validateGetEmployees, getAllEmployees);
+router.get('/allEmployees',validateGetEmployees,getAllEmployeesFromAllOrganizations);
 
 // Get employee by ID
 router.get('/:employeeId', validateGetEmployee, getEmployee);

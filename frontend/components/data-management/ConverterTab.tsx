@@ -316,9 +316,22 @@ const AttendanceExcelToCsvConverter = () => {
             let allRecords: any[] = [];
 
             const attendanceKeyMap: Record<string, string> = {
-                'employeeid': 'employeeId', 'empid': 'employeeId', 'id': 'employeeId',
-                'date': 'date', 'attendancedate': 'date',
-                'status': 'status', 'attendancestatus': 'status', 'type': 'status'
+                // ID Mappings
+                'employeeid': 'employeeId', 
+                'empid': 'employeeId', 
+                'id': 'employeeId', 
+                'attid': 'employeeId', // Added 'attid' just in case you want to use column A later
+            
+                // Date Mappings (FIX IS HERE)
+                'date': 'date', 
+                'attendancedate': 'date', 
+                'datetimein': 'date',   // <--- Matches "date_time_in" from your screenshot
+                'datetime': 'date',
+            
+                // Status Mappings
+                'status': 'status', 
+                'attendancestatus': 'status', 
+                'type': 'status'
             };
 
             for (const sheetName of workbook.SheetNames) {
@@ -350,7 +363,7 @@ const AttendanceExcelToCsvConverter = () => {
                 throw new Error("No valid attendance records found. Ensure sheets have 'employeeId', 'date', and 'status' columns.");
             }
 
-            const headers = ['employeeId', 'date', 'status'];
+            const headers = [,'employeeId', 'date', 'status'];
             const ws = XLSX.utils.json_to_sheet(allRecords, { header: headers });
             const csv = XLSX.utils.sheet_to_csv(ws);
             setGeneratedCsv(csv);

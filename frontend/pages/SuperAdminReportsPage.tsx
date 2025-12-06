@@ -35,7 +35,7 @@ const getHighlightClass = (value: number, warnThreshold: number, dangerThreshold
 
 const SuperAdminReportsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>('health');
-    const { allOrganizations, allUsers, historicalEmployeeData, setActiveOrganizationId } = useData();
+    const { allOrganizations, allUsers, historicalEmployeeData, setActiveOrganizationId,globalHeadcount } = useData();
     const { mode } = useTheme();
 
     const latestEmployees = useMemo(() => {
@@ -94,7 +94,7 @@ const SuperAdminReportsPage: React.FC = () => {
             totalOrgs: allOrganizations.length,
             activeOrgs: allOrganizations.filter(o => o.status === 'Active').length,
             totalUsers: allUsers.length,
-            totalEmployees: latestEmployees.filter(e => !e.terminationDate).length,
+            totalEmployees:globalHeadcount, //latestEmployees.filter(e => !e.terminationDate).length,
             userRoleDistribution: allUsers.reduce((acc, user) => { acc[user.role] = (acc[user.role] || 0) + 1; return acc; }, {} as Record<string, number>),
             totalMRR,
             orgGrowthData,
