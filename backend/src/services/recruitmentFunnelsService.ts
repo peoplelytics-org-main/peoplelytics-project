@@ -24,11 +24,53 @@ export interface PaginatedResult<T> {
 /**
  * Get RecruitmentFunnels model for a specific organization connection
  */
-export const getRecruitmentFunnelsModel = (connection: Connection): Model<IRecruitmentFunnels> => {
-  if (connection.models.RecruitmentFunnels) {
-    return connection.models.RecruitmentFunnels as Model<IRecruitmentFunnels>;
+export const getRecruitmentFunnelsModel = (connection: Connection): Model<any> => {
+  // Check if model is already compiled to avoid OverwriteModelError
+  if (connection.models.RecruitmentFunnel) {
+    return connection.models.RecruitmentFunnel;
   }
-  return connection.model<IRecruitmentFunnels>('RecruitmentFunnels', RecruitmentFunnelsSchema);
+  return connection.model('RecruitmentFunnel', RecruitmentFunnelsSchema);
+};
+
+export const bulkCreateRecruitmentFunnels = async (
+  RecruitmentFunnelModel: Model<any>, 
+  funnels: any[]
+): Promise<{ created: number; failed: number; errors: string[] }> => {
+  let created = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
+  console.log(`[BulkCreate] Attempting to create ${funnels.length} records...`);
+
+  for (const funnelData of funnels) {
+    try {
+      // Generate ID
+      const rec_funnel_id = `rf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      const newFunnel = new RecruitmentFunnelModel({
+        rec_funnel_id: rec_funnel_id,
+        positionId: funnelData.positionId,
+        orgId: funnelData.organizationId, // Ensure Schema has 'orgId' defined
+        shortlisted: funnelData.shortlisted,
+        interviewed: funnelData.interviewed,
+        offersExtended: funnelData.offersExtended,
+        offersAccepted: funnelData.offersAccepted,
+        joined: funnelData.joined,
+      });
+
+      await newFunnel.save();
+      created++;
+    } catch (error: any) {
+      failed++;
+      const errorMsg = `Position ${funnelData.positionId}: ${error.message}`;
+      errors.push(errorMsg);
+      // Log the full error to server console for debugging
+      logger.error(`[BulkCreate Error]`, error); 
+    }
+  }
+
+  console.log(`[BulkCreate] Finished. Created: ${created}, Failed: ${failed}`);
+  return { created, failed, errors };
 };
 
 /**

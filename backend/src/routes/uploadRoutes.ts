@@ -2,6 +2,7 @@ import express from 'express';
 import {
   uploadEmployees,
   uploadAttendance,
+  uploadRecruitmentFunnels,
 } from '../controllers/uploadController';
 import { extractOrganizationId, validateOrganizationAccess } from '../middleware/tenant';
 import { protect } from '../middleware/authMiddleware';
@@ -18,6 +19,7 @@ router.post('/employees', uploadEmployees);
 
 // Upload attendance from CSV/Excel
 router.post('/attendance', uploadAttendance);
+router.post('/recruitment-funnels',uploadRecruitmentFunnels);
 
 export default router;
 

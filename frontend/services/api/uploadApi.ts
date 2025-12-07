@@ -84,6 +84,41 @@ export const uploadApi = {
         error: error.message || 'Network error occurred',
       };
     }
+
+  },
+  uploadRecruitmentFunnels: async (file: File): Promise<ApiResponse<UploadResponse>> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Assumes your backend endpoint is /upload/recruitment-funnels
+      const response = await fetch(`${API_BASE_URL}/upload/recruitment-funnels`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: data.error || data.message || `HTTP error! status: ${response.status}`,
+          errors: data.errors,
+        };
+      }
+
+      return {
+        success: true,
+        ...data,
+      };
+    } catch (error: any) {
+      console.error('Upload recruitment funnels failed:', error);
+      return {
+        success: false,
+        error: error.message || 'Network error occurred',
+      };
+    }
   },
 };
 

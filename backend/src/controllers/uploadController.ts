@@ -1,7 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { Connection } from 'mongoose';
 import { upload } from '../middleware/upload';
-import { parseUploadedFile, mapRowToEmployee, mapRowToAttendance, validateEmployeeData, validateAttendanceData } from '../services/fileUploadService';
+import { parseUploadedFile, mapRowToEmployee, mapRowToAttendance, validateEmployeeData, validateAttendanceData, validateRecruitmentFunnelData, mapRowToRecruitmentFunnel } from '../services/fileUploadService';
+import { 
+  getRecruitmentFunnelsModel, 
+  bulkCreateRecruitmentFunnels
+} from '../services/recruitmentFunnelsService';
 import { getEmployeeModel } from '../services/employeeService';
 import { getAttendanceModel } from '../services/attendanceService';
 import { bulkCreateEmployees } from '../services/employeeService';
@@ -165,4 +169,67 @@ export const uploadAttendance = [
 ];
 
 
+export const uploadRecruitmentFunnels = [
+  upload.single('file'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
 
+      const connection = getOrgConnection(req);
+      const RecruitmentFunnelModel = getRecruitmentFunnelsModel(connection); // Ensure this matches your Service export name
+
+      // 1. Validate Org ID exists on Request
+      const currentOrgId = req.organizationId || (req as any).user?.organizationId;
+      if (!currentOrgId) {
+        return res.status(400).json({ success: false, error: 'User is not associated with an Organization' });
+      }
+
+      const rows = await parseUploadedFile(req.file.path, req.file.mimetype);
+      const funnels: any[] = [];
+      const errors: string[] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const funnelData = mapRowToRecruitmentFunnel(row);
+        
+        // 2. Explicitly attach Org ID
+        funnelData.organizationId = currentOrgId;
+
+        const validation = validateRecruitmentFunnelData(funnelData);
+
+        if (validation.valid) {
+          funnels.push(funnelData);
+        } else {
+          errors.push(`Row ${i + 2}: ${validation.errors.join(', ')}`);
+        }
+      }
+
+      if (funnels.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'No valid recruitment funnel data found',
+          errors,
+        });
+      }
+
+      const result = await bulkCreateRecruitmentFunnels(RecruitmentFunnelModel, funnels);
+
+      return res.status(201).json({
+        success: true,
+        data: {
+          created: result.created,
+          failed: result.failed,
+          errors: [...errors, ...result.errors],
+        },
+        message: `Upload completed: ${result.created} created, ${result.failed} failed`,
+      });
+
+    } catch (error: any) {
+      logger.error('Error in uploadRecruitmentFunnels:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to upload recruitment funnels',
+      });
+    }
+  },
+];

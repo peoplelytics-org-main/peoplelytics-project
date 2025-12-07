@@ -322,7 +322,7 @@ export const getAllEmployeesFromAllOrganizations = async (req: Request, res: Res
     const dbService = DatabaseService.getInstance();
 
     // 2. Fetch all registered organizations from Master DB
-    const organizations = await Organization.find({});
+    const organizations = await Organization.find({ status: "Active" });
 
     if (!organizations || organizations.length === 0) {
       res.json({ success: true, count: 0, data: [] });

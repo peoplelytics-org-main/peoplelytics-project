@@ -125,6 +125,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const canAnonymize = currentUser?.role === 'Super Admin' || currentUser?.role === 'Org Admin';
 
+    // Determine the active organization ID
+    const effectiveOrgId = useMemo(() => {
+        return currentUser?.role === 'Super Admin' ? activeOrganizationId : currentUser?.organizationId || null;
+    }, [currentUser, activeOrganizationId]);
+
     useEffect(() => {
         const fetchGlobalEmployees = async () => {
             // Guard clause: Only Super Admin should fetch all global employees
@@ -199,10 +204,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [currentUser]);
 
-    // Determine the active organization ID
-    const effectiveOrgId = useMemo(() => {
-        return currentUser?.role === 'Super Admin' ? activeOrganizationId : currentUser?.organizationId || null;
-    }, [currentUser, activeOrganizationId]);
+    
 
     useEffect(() => {
         const fetchEmployees = async () => {
@@ -229,6 +231,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         );
                         console.log("4. Mapped Data:", mappedEmployees); // Debug
                         setAllEmployeeData(mappedEmployees);
+                        
                     } else {
                         console.warn("⚠️ Data found was not an array. It was:", typeof potentialArray);
                         setAllEmployeeData([]);
@@ -786,7 +789,7 @@ useEffect(() => {
         });
 
         const currentSnapshot = Array.from(latestEmployeeRecords.values());
-
+        
         return {
             employeeData: currentSnapshot,
             historicalEmployeeData: orgHistoricalData,

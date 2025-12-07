@@ -3,12 +3,13 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IRecruitmentFunnels extends Document {
   rec_funnel_id:string;
   positionId: string;
-  orgId:string;
+  
   shortlisted: number;
   interviewed: number;
   offersExtended: number;
   offersAccepted: number;
   joined: number;
+  orgId:string;
   // conversionRates: {
   //   shortlistToInterview: number;
   //   interviewToOffer: number;

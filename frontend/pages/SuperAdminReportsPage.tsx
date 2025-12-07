@@ -37,6 +37,7 @@ const SuperAdminReportsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<Tab>('health');
     const { allOrganizations, allUsers, historicalEmployeeData, setActiveOrganizationId,globalHeadcount } = useData();
     const { mode } = useTheme();
+    
 
     const latestEmployees = useMemo(() => {
         const latestEmployeeMap = new Map<string, Employee>();
@@ -94,7 +95,7 @@ const SuperAdminReportsPage: React.FC = () => {
             totalOrgs: allOrganizations.length,
             activeOrgs: allOrganizations.filter(o => o.status === 'Active').length,
             totalUsers: allUsers.length,
-            totalEmployees:globalHeadcount, //latestEmployees.filter(e => !e.terminationDate).length,
+            totalEmployees:latestEmployees.filter(e => !e.terminationDate).length,
             userRoleDistribution: allUsers.reduce((acc, user) => { acc[user.role] = (acc[user.role] || 0) + 1; return acc; }, {} as Record<string, number>),
             totalMRR,
             orgGrowthData,
@@ -104,6 +105,7 @@ const SuperAdminReportsPage: React.FC = () => {
     const clientData = useMemo(() => {
         const today = new Date();
         return allOrganizations.map(org => {
+            
             const orgEmployees = latestEmployees.filter(e => e.organizationId === org.id && !e.terminationDate);
             const limit = APP_PACKAGES[org.package].headcountLimit;
             const usage = isFinite(limit) && limit > 0 ? (orgEmployees.length / limit) * 100 : 0;
@@ -111,7 +113,6 @@ const SuperAdminReportsPage: React.FC = () => {
             const daysLeft = org.status === 'Active' ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : -1;
             const orgHistoricalData = historicalEmployeeData.filter(e => e.organizationId === org.id);
             const latestSnapshot = orgHistoricalData.reduce((latest, current) => !latest || (current.snapshotDate && new Date(current.snapshotDate) > new Date(latest)) ? current.snapshotDate : latest, null as string | null);
-
             return { ...org, employeeCount: orgEmployees.length, limit, usage, daysLeft, lastUpdate: latestSnapshot };
         }).sort((a, b) => a.name.localeCompare(b.name));
     }, [allOrganizations, latestEmployees, historicalEmployeeData]);

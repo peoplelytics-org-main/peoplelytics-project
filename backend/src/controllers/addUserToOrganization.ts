@@ -248,8 +248,8 @@ export const getAllUsersFromOrganization = async (req: Request, res: Response): 
 
   export const getAllUsersFromAllOrganizations = async (req: Request, res: Response): Promise<void> => {
     try {
-      // 1. Fetch all registered organizations from Master DB
-      const organizations = await Organization.find({});
+      // ✅ 1. Fetch ONLY ACTIVE organizations from Master DB
+      const organizations = await Organization.find({ status: "Active" }); // Add filter here!
   
       if (!organizations || organizations.length === 0) {
         res.json({ success: true, count: 0, data: [] });
@@ -259,21 +259,17 @@ export const getAllUsersFromOrganization = async (req: Request, res: Response): 
       // 2. Create an array of promises to fetch users from each Tenant DB in parallel
       const userPromises = organizations.map(async (org) => {
         try {
-          // Switch context to specific Tenant DB
+          // ✅ No need to check status here anymore - already filtered
           const TenantUser = dbService.getTenantUserModel(org.orgId);
           
-          // Fetch users (excluding passwords)
           const users = await TenantUser.find({}).select("-password").lean();
           
-          // Optional: Attach the orgName to the user object explicitly if not already there
-          // (Though your create function already saves organizationName, this ensures it)
           return users.map(user => ({
             ...user,
-            _sourceOrgId: org.orgId // distinct flag to know where this user came from
+            _sourceOrgId: org.orgId
           }));
   
         } catch (err) {
-          // If one DB fails (e.g., connection issue), log it but don't break the whole request
           logger.warn(`Failed to fetch users for org: ${org.orgId}`, err);
           return []; 
         }
@@ -285,7 +281,7 @@ export const getAllUsersFromOrganization = async (req: Request, res: Response): 
       // 4. Flatten the array of arrays into a single list
       const allUsers = results.flat();
   
-      logger.info(`Fetched ${allUsers.length} users across ${organizations.length} organizations.`);
+      logger.info(`Fetched ${allUsers.length} users across ${organizations.length} ACTIVE organizations.`);
   
       res.json({ 
         success: true, 

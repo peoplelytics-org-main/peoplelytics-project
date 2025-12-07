@@ -219,3 +219,52 @@ export const validateAttendanceData = (data: any): { valid: boolean; errors: str
   };
 };
 
+const safeParseInt = (value: any): number => {
+  if (value === null || value === undefined || value === '') return 0;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
+export const mapRowToRecruitmentFunnel = (row: any): any => {
+  // Normalize keys to lower case for safer matching if Excel headers vary
+  const normalize = (key: string) => row[key] || row[key.toLowerCase()] || row[key.toUpperCase()];
+
+  return {
+    // Check various casing for Position ID
+    positionId: row.positionId || row['Position ID'] || row['position_id'] || row.PositionId,
+    
+    // Use safe parsing
+    shortlisted: safeParseInt(row.shortlisted || row['Shortlisted']),
+    interviewed: safeParseInt(row.interviewed || row['Interviewed']),
+    offersExtended: safeParseInt(row.offersExtended || row['Offers Extended'] || row['offersExtended']),
+    offersAccepted: safeParseInt(row.offersAccepted || row['Offers Accepted'] || row['offersAccepted']),
+    joined: safeParseInt(row.joined || row['Joined']),
+    
+    // Placeholder - will be overwritten by Controller
+    organizationId: row.organizationId
+  };
+};
+
+export const validateRecruitmentFunnelData = (data: any): { valid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+
+  if (!data.positionId) {
+    errors.push('Position ID is required');
+  }
+
+  // Check if Organization ID was successfully attached
+  if (!data.organizationId) {
+    errors.push('System Error: Organization ID missing from record');
+  }
+  
+  // Logical Validation
+  if (data.interviewed > data.shortlisted) errors.push(`Interviewed (${data.interviewed}) > Shortlisted (${data.shortlisted})`);
+  if (data.offersExtended > data.interviewed) errors.push(`Offers Extended (${data.offersExtended}) > Interviewed (${data.interviewed})`);
+  if (data.offersAccepted > data.offersExtended) errors.push(`Offers Accepted (${data.offersAccepted}) > Offers Extended (${data.offersExtended})`);
+  if (data.joined > data.offersAccepted) errors.push(`Joined (${data.joined}) > Offers Accepted (${data.offersAccepted})`);
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
+};
