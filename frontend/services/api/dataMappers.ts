@@ -87,6 +87,7 @@ export const mapBackendAttendanceToFrontend = (backendAttendance: any, orgId: st
   const date = dateTimeIn.toISOString().split('T')[0];
 
   return {
+    id: backendAttendance.attendanceId || backendAttendance._id || '', // ✅ Added id field for updates/deletes
     employeeId: backendAttendance.employeeId || '',
     date: date,
     status: backendAttendance.status || 'Present',
@@ -101,7 +102,7 @@ export const mapFrontendAttendanceToBackend = (frontendAttendance: Partial<Atten
   const dateTimeIn = frontendAttendance.date ? new Date(frontendAttendance.date) : new Date();
   
   return {
-    attendanceId: `att_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    attendanceId: frontendAttendance.id || `att_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // ✅ Use id if provided
     employeeId: frontendAttendance.employeeId,
     date_time_in: dateTimeIn,
     date_time_out: undefined, // Can be set later
@@ -222,8 +223,11 @@ export const mapFrontendPerformanceReviewToBackend = (frontendReview: Partial<Pe
  * Map backend exit interview data to frontend ExitInterview type
  */
 export const mapBackendExitInterviewToFrontend = (backendInterview: any, orgId: string): ExitInterview => {
+  // ✅ Use orgId from backend if available, otherwise use provided orgId
+  const organizationId = backendInterview.orgId || orgId;
+  
   return {
-    id: backendInterview._id || '',
+    id: backendInterview._id || backendInterview.exit_interview_id || '',
     employeeId: backendInterview.employeeId || '',
     primaryReasonForLeaving: backendInterview.primaryReasonForLeaving || '',
     secondaryReasonForLeaving: backendInterview.secondaryReasonForLeaving,
@@ -243,7 +247,7 @@ export const mapBackendExitInterviewToFrontend = (backendInterview: any, orgId: 
       summary: '',
     },
     analyzedAt: backendInterview.analyzedAt ? new Date(backendInterview.analyzedAt).toISOString() : new Date().toISOString(),
-    organizationId: orgId,
+    organizationId: organizationId, // ✅ Properly map orgId → organizationId
     createdAt: backendInterview.createdAt ? new Date(backendInterview.createdAt).toISOString() : undefined,
     updatedAt: backendInterview.updatedAt ? new Date(backendInterview.updatedAt).toISOString() : undefined,
   };
@@ -261,6 +265,7 @@ export const mapFrontendExitInterviewToBackend = (frontendInterview: Partial<Exi
     compensation: frontendInterview.compensation,
     culture: frontendInterview.culture,
     analyzedAt: frontendInterview.analyzedAt ? new Date(frontendInterview.analyzedAt) : new Date(),
+    orgId: frontendInterview.organizationId, // ✅ Map organizationId → orgId for backend
   };
 };
 

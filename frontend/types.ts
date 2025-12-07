@@ -87,6 +87,7 @@ export interface Employee {
 }
 
 export interface AttendanceRecord {
+  id?: string; // ✅ Added for backend compatibility (attendanceId)
   employeeId: string;
   date: string; // YYYY-MM-DD
   status: 'Present' | 'Unscheduled Absence' | 'PTO' | 'Sick Leave';

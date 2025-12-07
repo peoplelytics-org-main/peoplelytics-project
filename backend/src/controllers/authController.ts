@@ -53,13 +53,28 @@ export const loginUser = async (req: Request, res: Response) => {
 
     const lowercaseInput = username.toLowerCase();
     
+    // Build flexible query to match username or email (exact or partial)
+    // This handles cases like: user enters "khan" but username is "khan@farooq.com"
+    const buildUserQuery = (input: string) => {
+      // Escape special regex characters
+      const escapedInput = input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      return {
+        $or: [
+          { username: input }, // Exact username match
+          { "profile.email": input }, // Exact email match
+          { username: { $regex: `^${escapedInput}@`, $options: 'i' } }, // Username starts with input@ (e.g., "khan" matches "khan@farooq.com")
+          { "profile.email": { $regex: `^${escapedInput}@`, $options: 'i' } }, // Email starts with input@
+          { username: { $regex: `^${escapedInput}$`, $options: 'i' } }, // Exact match (case-insensitive)
+        ]
+      };
+    };
+    
     // =========================================================
     // STEP 1: ATTEMPT MASTER DB LOGIN (Super Admin)
     // =========================================================
     // We explicitly check the Master DB first
-    let user: any = await User.findOne({ 
-      $or: [{ username: lowercaseInput }, { "profile.email": lowercaseInput }] 
-    }).select("+password");
+    let user: any = await User.findOne(buildUserQuery(lowercaseInput)).select("+password");
 
     let isTenantUser = false;
     let activeOrgId = null;
@@ -76,17 +91,25 @@ export const loginUser = async (req: Request, res: Response) => {
       console.log(`DEBUG: User not in Master. Checking Tenant DB: ${organizationId}`);
 
       try {
+        // Normalize organization ID (handle both "org_xxx" and "xxx" formats)
+        // DatabaseService normalizes by removing "org_" prefix, but we need to pass the full orgId
+        // The service will handle normalization internally
+        const normalizedOrgId = organizationId.startsWith('org_') ? organizationId : `org_${organizationId}`;
+        console.log(`DEBUG: Normalized Org ID: ${normalizedOrgId}`);
+        
         // Get the User Model specifically connected to this Organization's DB
         // This uses the helper method we added to DatabaseService
-        const TenantUser = dbService.getTenantUserModel(organizationId);
+        const TenantUser = dbService.getTenantUserModel(normalizedOrgId);
         
-        user = await TenantUser.findOne({ 
-          $or: [{ username: lowercaseInput }, { "profile.email": lowercaseInput }] 
-        }).select("+password");
+        console.log(`DEBUG: Searching for user with query:`, JSON.stringify(buildUserQuery(lowercaseInput), null, 2));
+        user = await TenantUser.findOne(buildUserQuery(lowercaseInput)).select("+password");
 
         if (user) {
+            console.log(`DEBUG: User found in tenant DB: ${user.username}`);
             isTenantUser = true;
-            activeOrgId = organizationId;
+            activeOrgId = normalizedOrgId;
+        } else {
+            console.log(`DEBUG: User not found in tenant DB with query`);
         }
 
       } catch (err) {
