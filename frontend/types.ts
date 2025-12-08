@@ -46,7 +46,7 @@ export interface Organization {
   subscriptionEndDate: string; // YYYY-MM-DD
   status: 'Active' | 'Inactive';
   package: PackageName;
-  employeeCount?: number;
+  quota?: number;
 }
 
 export type SkillLevel = 'Novice' | 'Beginner' | 'Competent' | 'Proficient' | 'Expert';

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Organization } from '../models/shared/Organization'
 import { DatabaseService } from "../services/tenant/databaseService";
 import { logger } from '../utils/helpers/logger';
+import mongoose from 'mongoose';
 
 const dbService = DatabaseService.getInstance();
 
@@ -21,7 +22,7 @@ export const addOrganization = async (orgData: any) => {
   .replace(/\s+/g, '-')     // Replace one or more spaces with a single hyphen
   .replace(/[^a-z0-9-]/g, '');
 
-  const orgId = `org_${orgSlug}${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  const orgId = `org_${orgSlug}`;
 
   // Set default start and end dates
   const startDate = orgData.subscriptionStartDate
@@ -44,7 +45,7 @@ export const addOrganization = async (orgData: any) => {
     subscriptionEndDate: endDate,
     status: orgData.status || "Active",
     package: orgData.package || "Basic",
-    employeeCount: orgData.employeeCount || 0,
+    quota: orgData.quota || 0,
   });
 
   console.log(`✅ Organization "${newOrg.name}" added successfully`);
@@ -116,13 +117,60 @@ export const getOrganizationById = async (req: Request, res: Response): Promise<
   }
 };
 
+export const searchOrganizations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { query } = req.query; // Get search term from query params (e.g., ?query=inn)
+
+    console.log('------------------------------------------------');
+    console.log('1. Search Query:', query);
+    console.log('2. Current DB Name:', mongoose.connection.name); 
+    console.log('3. Host:', mongoose.connection.host);
+
+    // If query is empty or too short, return empty array
+    if (!query || typeof query !== 'string' || query.length < 2) {
+      res.status(200).json({
+        success: true,
+        data: []
+      });
+      return;
+    }
+
+    // Perform a case-insensitive Regex search on both Name and OrgID
+    // .select('orgId name') ensures we ONLY send back what is needed (Security best practice)
+    // .limit(5) ensures the UI isn't overwhelmed with huge lists
+    const organizations = await Organization.find({
+      $or: [
+        { name: { $regex: query, $options: 'i' } },
+        { orgId: { $regex: query, $options: 'i' } }
+      ]
+    })
+    .select('orgId name') 
+    .limit(5);
+
+    res.status(200).json({
+      success: true,
+      data: organizations
+    });
+
+  } catch (error) {
+    // logger.error('Error searching organizations:', error); 
+    // Use console.error if logger is not available in context
+    console.error('Error searching organizations:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search organizations'
+    });
+  }
+};
+
 /**
  * Update organization
  */
 export const updateOrganization = async (req: Request, res: Response): Promise<void> => {
   try {
     const { orgId } = req.params;
-    const { name, subscriptionStartDate, subscriptionEndDate, status, package: pkg, employeeCount, settings, features } = req.body;
+    const { name, subscriptionStartDate, subscriptionEndDate, status, package: pkg, quota, settings, features } = req.body;
 
     const updateData: any = {};
     
@@ -146,7 +194,7 @@ export const updateOrganization = async (req: Request, res: Response): Promise<v
     if (subscriptionEndDate !== undefined) updateData.subscriptionEndDate = new Date(subscriptionEndDate);
     if (status !== undefined) updateData.status = status;
     if (pkg !== undefined) updateData.package = pkg;
-    if (employeeCount !== undefined) updateData.employeeCount = employeeCount;
+    if (quota !== undefined) updateData.quota = quota;
     if (settings !== undefined) updateData.settings = settings;
     if (features !== undefined) updateData.features = features;
 

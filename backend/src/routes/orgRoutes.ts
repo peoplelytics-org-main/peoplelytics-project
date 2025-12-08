@@ -1,5 +1,5 @@
 import express from 'express';
-import {addOrganization} from "../controllers/orgController"
+import {addOrganization, searchOrganizations} from "../controllers/orgController"
 import DatabaseService from '../services/tenant/databaseService';
 import { logger } from '../utils/helpers/logger';
 import {addUserToOrganization, deleteUserFromOrganization, getAllUsersFromAllOrganizations, getAllUsersFromOrganization, getUserById, updateUserInOrganization} from "../controllers/addUserToOrganization"
@@ -113,6 +113,7 @@ router.post('/add-organization', validateCreateOrganization, async (req: express
 
 // Get all organizations (with optional filters)
 router.get('/', validateGetOrganizations, getAllOrganizations);
+
 
 // Get organization by ID (includes database stats)
 router.get('/:orgId', validateGetOrganizationById, getOrganizationById);

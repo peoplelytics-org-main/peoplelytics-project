@@ -22,6 +22,7 @@ import salaryRoutes from './routes/salaryRoutes';
 import accountsRoutes from './routes/accountsRoutes';
 import expensesRoutes from './routes/expensesRoutes';
 import leavesRoutes from './routes/leavesRoutes';
+import searchRoutes from "./routes/searchRoutes";
 
 //import { errorHandler } from './middleware/errorHandler';
 //import { logging } from './middleware/logging';
@@ -126,6 +127,7 @@ app.use('/api/auth', (req, res, next) => {
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/organizations', protect, orgRoutes);
+app.use("/api/search-org",searchRoutes);
 app.use('/api/employees', protect, extractOrganizationId, validateOrganizationAccess, checkOrganizationAccess, employeeRoutes);
 app.use('/api/attendance', protect, extractOrganizationId, validateOrganizationAccess, checkOrganizationAccess, attendanceRoutes);
 app.use('/api/skills', protect, extractOrganizationId, validateOrganizationAccess, checkOrganizationAccess, skillsRoutes);

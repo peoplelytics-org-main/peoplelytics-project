@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState,useRef ,useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/ui/Button';
 import Card, { CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import Input from '../components/ui/Input';
-import { Eye, EyeOff, Building2 } from 'lucide-react';
+import { Eye, EyeOff, Building2, Loader2, Search, Check } from 'lucide-react';
+import { API_BASE_URL } from '@/services/api/baseApi';
+
+// Define the shape of your organization data
+interface OrganizationOption {
+    orgId: string;
+    name: string;
+}
 
 const LoginPage: React.FC = () => {
     // Ensure your AuthContext type definition for login accepts the 3rd argument
@@ -19,6 +26,92 @@ const LoginPage: React.FC = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+
+    // Search/Autocomplete States
+    const [orgOptions, setOrgOptions] = useState<OrganizationOption[]>([]);
+    const [isSearchingOrg, setIsSearchingOrg] = useState(false);
+    const [showOrgDropdown, setShowOrgDropdown] = useState(false);
+    const searchWrapperRef = useRef<HTMLDivElement>(null);
+
+    // 1. Handle Click Outside to close dropdown
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (searchWrapperRef.current && !searchWrapperRef.current.contains(event.target as Node)) {
+                setShowOrgDropdown(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    // 2. Debounce Search Logic
+    useEffect(() => {
+        // Create an abort controller to cancel previous requests if user keeps typing
+        const controller = new AbortController();
+        const signal = controller.signal;
+
+        const fetchOrganizations = async () => {
+            if (!organizationId || organizationId.length < 2) {
+                setOrgOptions([]);
+                return;
+            }
+
+            setIsSearchingOrg(true);
+            try {
+                // Replace with your actual API URL
+                // Using encodeURIComponent handles special characters like spaces or symbols safely
+                const response = await fetch(`${API_BASE_URL}/search-org/search?query=${encodeURIComponent(organizationId)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    signal: signal // Connect the abort signal
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                // Based on the controller structure we created:
+                // result looks like: { success: true, data: [...] }
+                if (result.success) {
+                    setOrgOptions(result.data);
+                }
+            } catch (err: any) {
+                // Ignore "AbortError" because it just means the user typed again
+                if (err.name !== 'AbortError') {
+                    console.error("Failed to search orgs", err);
+                    setOrgOptions([]);
+                }
+            } finally {
+                // Only stop loading if the request wasn't aborted
+                if (!signal.aborted) {
+                    setIsSearchingOrg(false);
+                }
+            }
+        };
+
+        const debounceTimer = setTimeout(() => {
+            if (showOrgDropdown) {
+                fetchOrganizations();
+            }
+        }, 300);
+
+        // Cleanup function:
+        // 1. Clears the timer if user types again within 300ms
+        // 2. Aborts the fetch request if it's still running
+        return () => {
+            clearTimeout(debounceTimer);
+            controller.abort(); 
+        };
+    }, [organizationId, showOrgDropdown]);
+
+    const handleOrgSelect = (org: OrganizationOption) => {
+        setOrganizationId(org.orgId);
+        setShowOrgDropdown(false);
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,17 +145,59 @@ const LoginPage: React.FC = () => {
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
                         
-                        {/* Organization ID Input */}
-                        <div>
-                            <Input 
-                                label="Organization ID (Not required for Superadmin)" 
-                                id="orgId" 
-                                type="text" 
-                                value={organizationId} 
-                                onChange={e => setOrganizationId(e.target.value)} 
-                                placeholder="e.g. org_innovate_inc" 
-                            />
+                        {/* SEARCHABLE Organization ID Input */}
+                        <div className="relative" ref={searchWrapperRef}>
+                            <div className="relative">
+                                <Input 
+                                    label="Organization ID" 
+                                    id="orgId" 
+                                    type="text" 
+                                    value={organizationId} 
+                                    onChange={e => {
+                                        setOrganizationId(e.target.value);
+                                        setShowOrgDropdown(true);
+                                    }}
+                                    onFocus={() => setShowOrgDropdown(true)}
+                                    placeholder="Start typing to search..." 
+                                    autoComplete="off"
+                                />
+                                {/* Indicator Icon inside Input */}
+                                <div className="absolute right-3 top-[34px] text-text-secondary pointer-events-none">
+                                    {isSearchingOrg ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Search className="h-4 w-4" />
+                                    )}
+                                </div>
+                            </div>
                             <p className="text-xs text-text-secondary mt-1">Required for organization members</p>
+
+                            {/* DROPDOWN RESULTS */}
+                            {showOrgDropdown && organizationId.length > 0 && (
+                                <div className="absolute z-50 w-full mt-1 bg-black dark:bg-gray-800 border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                    {orgOptions.length > 0 ? (
+                                        <ul className="py-1">
+                                            {orgOptions.map((org) => (
+                                                <li 
+                                                    key={org.id}
+                                                    onClick={() => handleOrgSelect(org)}
+                                                    className="px-4 py-2 hover:bg-gray-700 dark:hover:bg-gray-700 cursor-pointer text-sm flex items-center justify-between group"
+                                                >
+                                                    <div>
+                                                        <p className="font-medium text-text-primary">{org.name}</p>
+                                                        <p className="text-xs text-text-secondary group-hover:text-primary-600">{org.id}</p>
+                                                    </div>
+                                                    {organizationId === org.id && <Check className="h-4 w-4 text-green-500"/>}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <div className="px-4 py-3 text-sm text-text-secondary">
+                                            {isSearchingOrg ? 'Searching...' : 'No organizations found.'}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <Input 

@@ -7,7 +7,7 @@ export interface IOrganization extends Document {
   subscriptionEndDate: Date;
   status: 'Active' | 'Inactive';
   package: 'Basic' |'Pro' | 'Enterprise';
-  employeeCount?: number;
+  quota?: number;
   createdAt: Date;
   updatedAt: Date;
   settings: {
@@ -59,7 +59,7 @@ const OrganizationSchema = new Schema<IOrganization>({
     enum: ['Basic','Intermediate', 'Pro', 'Enterprise'],
     required: true
   },
-  employeeCount: {
+  quota: {
     type: Number,
     default: 0
   },

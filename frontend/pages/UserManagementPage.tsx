@@ -324,7 +324,7 @@ const PackageManagementView: React.FC<PackageManagementViewProps> = ({
                                         <input
                                             type="number"
                                             aria-label={`Number of employees for ${org.name}`}
-                                            value={org.employeeCount || ''}
+                                            value={org.quota || ''}
                                             onChange={(e) => handleEmployeeCountChange(org.id, e.target.value)}
                                             className="w-24 bg-background border border-border rounded-md px-2 py-1.5 text-sm text-text-primary focus:ring-2 focus:ring-primary-500 focus:outline-none"
                                         />
@@ -629,7 +629,7 @@ const UserManagementPage: React.FC = () => {
                 subscriptionEndDate: backendOrg.subscriptionEndDate.split('T')[0],
                 status: backendOrg.status,
                 package: backendOrg.package,
-                employeeCount: backendOrg.employeeCount || 0,
+                quota: backendOrg.quota || 0,
             };
     
             setOrganizations(orgs => [...orgs, newOrg]);
@@ -670,7 +670,7 @@ const UserManagementPage: React.FC = () => {
                         subscriptionEndDate: org.subscriptionEndDate.split('T')[0],
                         status: org.status,
                         package: org.package,
-                        employeeCount: org.employeeCount || 0,
+                        quota: org.quota || 0,
                     }));
                     setOrganizations(mappedOrgs);
                 }
@@ -976,12 +976,12 @@ const UserManagementPage: React.FC = () => {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ employeeCount: isNaN(numCount) ? 0 : numCount })
+                body: JSON.stringify({ quota: isNaN(numCount) ? 0 : numCount })
             });
     
             if (response.ok) {
                 setOrganizations(prevOrgs => 
-                    prevOrgs.map(org => org.id === orgId ? { ...org, employeeCount: isNaN(numCount) ? undefined : numCount } : org)
+                    prevOrgs.map(org => org.id === orgId ? { ...org, quota: isNaN(numCount) ? undefined : numCount } : org)
                 );
             }
         } catch (error) {
