@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import {getOrganizationDatabase} from "../config/database"
 import { Connection } from 'mongoose';
 import { upload } from '../middleware/upload';
 import { parseUploadedFile, mapRowToEmployee, mapRowToAttendance, validateEmployeeData, validateAttendanceData, validateRecruitmentFunnelData, mapRowToRecruitmentFunnel } from '../services/fileUploadService';
@@ -8,6 +9,11 @@ import {
 } from '../services/recruitmentFunnelsService';
 import { getEmployeeModel } from '../services/employeeService';
 import { getAttendanceModel } from '../services/attendanceService';
+import { getSalaryModel } from '@/services/salaryService';
+import { getSkillsModel } from '@/services/skillsService';
+import { getPerformanceReviewModel } from '@/services/performanceReviewsService';
+import { getJobPositionsModel } from '@/services/jobPositionsService';
+import { getDepartmentsModel } from '@/services/departmentsService';
 import { bulkCreateEmployees } from '../services/employeeService';
 import { bulkCreateAttendance } from '../services/attendanceService';
 import { DatabaseService } from '../services/tenant/databaseService';
@@ -31,75 +37,222 @@ const getOrgConnection = (req: Request): Connection => {
  * Upload employees from CSV/Excel file
  * POST /api/upload/employees
  */
+// export const uploadEmployees = [
+//   upload.single('file'),
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       if (!req.file) {
+//         return res.status(400).json({
+//           success: false,
+//           error: 'No file uploaded',
+//         });
+//       }
+
+//       const connection = getOrgConnection(req);
+//       const EmployeeModel = getEmployeeModel(connection);
+
+//       // Parse file
+//       const rows = await parseUploadedFile(req.file.path, req.file.mimetype);
+
+//       // Map and validate rows
+//       const employees: any[] = [];
+//       const errors: string[] = [];
+
+//       for (let i = 0; i < rows.length; i++) {
+//         const row = rows[i];
+//         const employeeData = mapRowToEmployee(row);
+//         const validation = validateEmployeeData(employeeData);
+
+//         if (validation.valid) {
+//           // Convert hireDate to Date if it's a string
+//           if (typeof employeeData.hireDate === 'string') {
+//             employeeData.hireDate = new Date(employeeData.hireDate);
+//           }
+//           if (employeeData.terminationDate && typeof employeeData.terminationDate === 'string') {
+//             employeeData.terminationDate = new Date(employeeData.terminationDate);
+//           }
+//           employees.push(employeeData);
+//         } else {
+//           errors.push(`Row ${i + 2}: ${validation.errors.join(', ')}`);
+//         }
+//       }
+
+//       if (employees.length === 0) {
+//         return res.status(400).json({
+//           success: false,
+//           error: 'No valid employee data found in file',
+//           errors,
+//         });
+//       }
+
+//       // Bulk create employees
+//       const result = await bulkCreateEmployees(EmployeeModel, employees);
+
+//       return res.status(201).json({
+//         success: true,
+//         data: {
+//           created: result.created,
+//           failed: result.failed,
+//           errors: [...errors, ...result.errors],
+//         },
+//         message: `Upload completed: ${result.created} employees created, ${result.failed} failed`,
+//       });
+//     } catch (error: any) {
+//       logger.error('Error in uploadEmployees:', error);
+//       return res.status(500).json({
+//         success: false,
+//         error: error.message || 'Failed to upload employees',
+//       });
+//     }
+//   },
+// ];
+
 export const uploadEmployees = [
-  upload.single('file'),
+  upload.single("file"),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.file) {
         return res.status(400).json({
           success: false,
-          error: 'No file uploaded',
+          error: "No file uploaded",
         });
       }
 
       const connection = getOrgConnection(req);
+
       const EmployeeModel = getEmployeeModel(connection);
+      const PerformanceModel = getPerformanceReviewModel(connection);
+      const SalaryModel = getSalaryModel(connection);
+      const SkillsModel = getSkillsModel(connection);
+     
 
       // Parse file
       const rows = await parseUploadedFile(req.file.path, req.file.mimetype);
 
-      // Map and validate rows
-      const employees: any[] = [];
+      // Final containers
+      const employeeBulk: any[] = [];
+      const performanceBulk: any[] = [];
+      const salaryBulk: any[] = [];
+      const skillsBulk: any[] = [];
+      const departmentBulk:any[]=[];
+
       const errors: string[] = [];
 
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         const employeeData = mapRowToEmployee(row);
-        const validation = validateEmployeeData(employeeData);
 
-        if (validation.valid) {
-          // Convert hireDate to Date if it's a string
-          if (typeof employeeData.hireDate === 'string') {
-            employeeData.hireDate = new Date(employeeData.hireDate);
-          }
-          if (employeeData.terminationDate && typeof employeeData.terminationDate === 'string') {
-            employeeData.terminationDate = new Date(employeeData.terminationDate);
-          }
-          employees.push(employeeData);
-        } else {
-          errors.push(`Row ${i + 2}: ${validation.errors.join(', ')}`);
+        const validation = validateEmployeeData(employeeData);
+        if (!validation.valid) {
+          errors.push(`Row ${i + 2}: ${validation.errors.join(", ")}`);
+          continue;
+        }
+
+        // ----------- EMPLOYEE BASIC DATA -------------
+
+        if (typeof employeeData.hireDate === "string") {
+          employeeData.hireDate = new Date(employeeData.hireDate);
+        }
+        if (employeeData.terminationDate && typeof employeeData.terminationDate === "string") {
+          employeeData.terminationDate = new Date(employeeData.terminationDate);
+        }
+
+        employeeBulk.push({
+          insertOne: { document: employeeData },
+        });
+
+        // ---------- PERFORMANCE & ENGAGEMENT ----------
+
+        performanceBulk.push({
+          insertOne: {
+            document: {
+              employeeId: employeeData.employeeId,
+              name: employeeData.name,
+              performanceRating: employeeData.performanceRating ?? 3,
+              potentialRating: employeeData.potentialRating ?? 1,
+              trainingCompleted: employeeData.trainingCompleted ?? 0,
+              trainingTotal: employeeData.trainingTotal ?? 8,
+              weeklyHours: employeeData.weeklyHours ?? 40,
+              hasGrievance: employeeData.hasGrievance ?? false,
+              impactScore: employeeData.impactScore ?? 0,      // <-- Add this
+              flightRiskScore: employeeData.flightRiskScore ?? 0, 
+            },
+          },
+        });
+
+        // ---------- SALARY & COMPENSATION -------------
+
+        salaryBulk.push({
+          insertOne: {
+            document: {
+              salaryId: `SAL_${employeeData.employeeId}`,
+              employeeId: employeeData.employeeId,
+              name: employeeData.name,
+              salary: employeeData.salary ?? 0,
+              bonus: employeeData.bonus ?? 0,
+              lastRaiseAmount: employeeData.lastRaiseAmount ?? 0,
+            },
+          },
+        });
+
+        
+
+        // ------------------ SKILLS --------------------
+
+        if (Array.isArray(employeeData.skills)) {
+          employeeData.skills.forEach((skill: any) => {
+            skillsBulk.push({
+              insertOne: {
+                document: {
+                  skillLevelId: `SK_${employeeData.employeeId}_${skill.name}`,
+                  employeeId: employeeData.employeeId,
+                  employeeName: employeeData.name,
+                  skillName: skill.name,
+                  skillLevel: skill.level,
+                },
+              },
+            });
+          });
         }
       }
 
-      if (employees.length === 0) {
+      // If no valid rows found
+      if (employeeBulk.length === 0) {
         return res.status(400).json({
           success: false,
-          error: 'No valid employee data found in file',
+          error: "No valid rows found",
           errors,
         });
       }
 
-      // Bulk create employees
-      const result = await bulkCreateEmployees(EmployeeModel, employees);
+      // Execute bulk ops
+      await EmployeeModel.bulkWrite(employeeBulk);
+      await PerformanceModel.bulkWrite(performanceBulk);
+      await SalaryModel.bulkWrite(salaryBulk);
+      if (skillsBulk.length > 0) await SkillsModel.bulkWrite(skillsBulk);
 
       return res.status(201).json({
         success: true,
-        data: {
-          created: result.created,
-          failed: result.failed,
-          errors: [...errors, ...result.errors],
+        message: "Employees uploaded successfully",
+        data:{
+        createdEmployees: employeeBulk.length,
+        createdPerformance: performanceBulk.length,
+        createdSalary: salaryBulk.length,
+        createdSkills: skillsBulk.length,
         },
-        message: `Upload completed: ${result.created} employees created, ${result.failed} failed`,
+        
+        errors,
       });
     } catch (error: any) {
-      logger.error('Error in uploadEmployees:', error);
+      logger.error("Error in uploadEmployees:", error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to upload employees',
+        error: error.message || "Failed to upload employees",
       });
     }
   },
 ];
+
 
 /**
  * Upload attendance from CSV/Excel file

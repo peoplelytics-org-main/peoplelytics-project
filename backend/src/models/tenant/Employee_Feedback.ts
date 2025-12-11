@@ -49,6 +49,6 @@ export const EmployeeFeedbackSchema = new Schema<IEmployeeFeedback>({
   
 }, {
   timestamps: true,
-  collection: 'employees'
+  collection: 'employee_feedback'
 });
 

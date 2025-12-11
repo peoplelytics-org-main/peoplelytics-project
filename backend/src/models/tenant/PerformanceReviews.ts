@@ -37,7 +37,6 @@ export const PerformanceAndEngagementSchema = new Schema<IPerformanceAndEngageme
     type: Number,
     required: true,
     min: 1,
-    max: 3,
     index: true
   },
   
@@ -45,13 +44,12 @@ export const PerformanceAndEngagementSchema = new Schema<IPerformanceAndEngageme
     type:Number,
     default:0.0,
     min:0.0,
-    max:5.0,
+    
   },
   impactScore:{
     type:Number,
     default:0.0,
     min:0.0,
-    max:10.0
   },
   trainingCompleted: {
     type: Number,

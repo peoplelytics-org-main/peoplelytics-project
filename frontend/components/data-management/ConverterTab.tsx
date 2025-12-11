@@ -116,6 +116,9 @@ const ExcelToCsvConverter = () => {
                 'trainingcompleted': 'trainingCompleted', 'trainingscompleted': 'trainingCompleted',
                 'trainingtotal': 'trainingTotal', 'totaltrainings': 'trainingTotal',
                 'hasgrievance': 'hasGrievance', 'grievance': 'hasGrievance',
+                'flightriskscore':'flightRiskScore',
+                'impactscore':'impactScore',
+
             };
 
             const skillKeyMap: Record<string, string> = {
@@ -203,7 +206,7 @@ const ExcelToCsvConverter = () => {
                 throw new Error(`Headcount limit exceeded. Your plan allows ${currentOrgHeadcountLimit} employees. You have ${currentOrgHeadcount}, and this Excel file contains ${employeeMap.size} records. Please upgrade or reduce the file size.`);
             }
             
-            const headers = [ 'id', 'name', 'gender', 'jobTitle', 'department', 'location', 'managerId', 'hireDate', 'terminationDate', 'terminationReason', 'successionStatus', 'salary', 'bonus', 'lastRaiseAmount', 'performanceRating', 'potentialRating', 'engagementScore', 'weeklyHours', 'compensationSatisfaction', 'benefitsSatisfaction', 'managementSatisfaction', 'trainingSatisfaction', 'skills', 'trainingCompleted', 'trainingTotal', 'hasGrievance' ];
+            const headers = [ 'id', 'name', 'gender', 'jobTitle', 'department', 'location', 'managerId', 'hireDate', 'terminationDate', 'terminationReason', 'successionStatus', 'salary', 'bonus', 'lastRaiseAmount', 'performanceRating', 'potentialRating', 'engagementScore', 'weeklyHours', 'compensationSatisfaction', 'benefitsSatisfaction', 'managementSatisfaction', 'trainingSatisfaction', 'skills', 'trainingCompleted', 'trainingTotal', 'hasGrievance','flightRiskScore', 'impactScore'];
             
             const dataForCsv = Array.from(employeeMap.values()).map(emp => {
                 const csvRow: any = {};

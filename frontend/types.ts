@@ -84,6 +84,8 @@ export interface Employee {
   weeklyHours?: number;
   organizationId: string;
   snapshotDate?: string; // YYYY-MM-DD
+  flightRiskScore?:number;
+  impactScore?:number;
 }
 
 export interface AttendanceRecord {

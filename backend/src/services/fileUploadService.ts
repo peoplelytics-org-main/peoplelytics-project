@@ -131,6 +131,8 @@ export const mapRowToEmployee = (row: any): any => {
     bonus: row.bonus ? Number(row.bonus) : undefined,
     lastRaiseAmount: row.lastRaiseAmount ? Number(row.lastRaiseAmount) : undefined,
     hasGrievance: row.hasGrievance ? String(row.hasGrievance).toLowerCase() === 'true' : undefined,
+    impactScore: row.impactScore? Number(row.impactScore):undefined,       // <-- Map here
+    flightRiskScore:row.flightRiskScore? Number(row.flightRiskScore):undefined, 
     weeklyHours: row.weeklyHours ? Number(row.weeklyHours) : undefined,
     snapshotDate: row.snapshotDate ? new Date(row.snapshotDate) : new Date(),
   };
