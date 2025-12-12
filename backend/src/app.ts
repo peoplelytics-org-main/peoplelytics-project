@@ -22,6 +22,7 @@ import salaryRoutes from './routes/salaryRoutes';
 import accountsRoutes from './routes/accountsRoutes';
 import expensesRoutes from './routes/expensesRoutes';
 import leavesRoutes from './routes/leavesRoutes';
+import employeeFeedbackRoutes from './routes/employeeFeedbackRoutes';
 import searchRoutes from "./routes/searchRoutes";
 
 //import { errorHandler } from './middleware/errorHandler';
@@ -143,6 +144,7 @@ app.use('/api/salary', protect, extractOrganizationId, validateOrganizationAcces
 app.use('/api/accounts', protect, extractOrganizationId, validateOrganizationAccess, checkOrganizationAccess, accountsRoutes);
 app.use('/api/expenses', protect, extractOrganizationId, validateOrganizationAccess, checkOrganizationAccess, expensesRoutes);
 app.use('/api/leaves', protect, extractOrganizationId, validateOrganizationAccess, checkOrganizationAccess, leavesRoutes);
+app.use('/api/employee-feedback', protect, extractOrganizationId, validateOrganizationAccess, checkOrganizationAccess, employeeFeedbackRoutes);
 
 // Error handling middleware (must be last)
 import { errorHandler } from './middleware/errorHandler';

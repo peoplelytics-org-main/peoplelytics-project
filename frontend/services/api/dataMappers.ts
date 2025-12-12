@@ -4,6 +4,7 @@ import type { ExitInterview } from './exitInterviewsApi';
 import type { Skill } from './skillsApi';
 import type { Report } from './reportsApi';
 import type { AnalyticsMetric } from './analyticsApi';
+import type { EmployeeFeedback } from './employeeFeedbackApi';
 
 /**
  * Map backend employee data to frontend Employee type
@@ -577,6 +578,38 @@ export const mapFrontendLeaveToBackend = (frontendLeave: Partial<any>): any => {
     approvedBy: frontendLeave.approvedBy,
     approvedAt: frontendLeave.approvedAt ? new Date(frontendLeave.approvedAt) : undefined,
     rejectedReason: frontendLeave.rejectedReason,
+  };
+};
+
+/**
+ * Map backend employee feedback data to frontend EmployeeFeedback type
+ */
+export const mapBackendEmployeeFeedbackToFrontend = (backendFeedback: any): EmployeeFeedback => {
+  return {
+    satisId: backendFeedback.satisId || backendFeedback._id || '',
+    employeeId: backendFeedback.employeeId || '',
+    engagementScore: backendFeedback.engagementScore || 0,
+    compensationSatisfaction: backendFeedback.compensationSatisfaction,
+    benefitsSatisfaction: backendFeedback.benefitsSatisfaction,
+    managementSatisfaction: backendFeedback.managementSatisfaction,
+    trainingSatisfaction: backendFeedback.trainingSatisfaction,
+    createdAt: backendFeedback.createdAt ? new Date(backendFeedback.createdAt).toISOString() : undefined,
+    updatedAt: backendFeedback.updatedAt ? new Date(backendFeedback.updatedAt).toISOString() : undefined,
+  };
+};
+
+/**
+ * Map frontend employee feedback data to backend format
+ */
+export const mapFrontendEmployeeFeedbackToBackend = (frontendFeedback: Partial<EmployeeFeedback>): any => {
+  return {
+    satisId: frontendFeedback.satisId || `satis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    employeeId: frontendFeedback.employeeId,
+    engagementScore: frontendFeedback.engagementScore,
+    compensationSatisfaction: frontendFeedback.compensationSatisfaction,
+    benefitsSatisfaction: frontendFeedback.benefitsSatisfaction,
+    managementSatisfaction: frontendFeedback.managementSatisfaction,
+    trainingSatisfaction: frontendFeedback.trainingSatisfaction,
   };
 };
 
