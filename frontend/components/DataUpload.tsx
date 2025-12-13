@@ -11,6 +11,7 @@ import { uploadApi } from '../services/api/uploadApi';
 interface DataUploadProps {
   onComplete: (data: Employee[]) => void;
   organizationId: string;
+  existingEmployeeIds?: Set<string>;
 }
 
 type RowError = { field: string; message: string };
@@ -18,7 +19,7 @@ type ErrorRow = { rowIndex: number; errors: RowError[]; rowData: Record<string, 
 
 const REQUIRED_FIELDS = ['id', 'name', 'department', 'jobTitle', 'hireDate', 'salary', 'gender', 'performanceRating', 'engagementScore'];
 
-const validateRow = (row: Record<string, any>, index: number, allIds: Set<string>): RowError[] => {
+const validateRow = (row: Record<string, any>, index: number, allIds: Set<string>,existingIds?: Set<string>): RowError[] => {
     const errors: RowError[] = [];
     
     REQUIRED_FIELDS.forEach(field => {

@@ -14,6 +14,8 @@ import {
 
 const router = express.Router();
 
+
+
 router.post('/add-organization', validateCreateOrganization, async (req: express.Request, res: express.Response) => {
   try {
     const orgData = req.body;
@@ -56,9 +58,9 @@ router.post('/add-organization', validateCreateOrganization, async (req: express
       'accounts',
       'analytics',
       'attendance',
-      'attendances', // May be used for historical/archived attendance data
       'departments',
       'employees',
+      'employee_feedback',
       'exit_interviews',
       'expenses',
       'job_positions',

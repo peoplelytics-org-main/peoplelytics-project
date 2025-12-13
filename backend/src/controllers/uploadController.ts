@@ -12,6 +12,7 @@ import { getAttendanceModel } from '../services/attendanceService';
 import { getSalaryModel } from '@/services/salaryService';
 import { getSkillsModel } from '@/services/skillsService';
 import { getPerformanceReviewModel } from '@/services/performanceReviewsService';
+import { getEmployeeFeedbackModel,createEmployeeFeedback } from '@/services/employeeFeedbackService';
 import { getJobPositionsModel } from '@/services/jobPositionsService';
 import { getDepartmentsModel } from '@/services/departmentsService';
 import { bulkCreateEmployees } from '../services/employeeService';
@@ -124,6 +125,7 @@ export const uploadEmployees = [
       const PerformanceModel = getPerformanceReviewModel(connection);
       const SalaryModel = getSalaryModel(connection);
       const SkillsModel = getSkillsModel(connection);
+      const EmployeeFeedbackModel=getEmployeeFeedbackModel(connection);
      
 
       // Parse file
@@ -134,8 +136,7 @@ export const uploadEmployees = [
       const performanceBulk: any[] = [];
       const salaryBulk: any[] = [];
       const skillsBulk: any[] = [];
-      const departmentBulk:any[]=[];
-
+      const employeeFeedbackBulk:any[]=[];      
       const errors: string[] = [];
 
       for (let i = 0; i < rows.length; i++) {
@@ -157,41 +158,72 @@ export const uploadEmployees = [
           employeeData.terminationDate = new Date(employeeData.terminationDate);
         }
 
+        // FIX 1: Use updateOne with upsert instead of insertOne
         employeeBulk.push({
-          insertOne: { document: employeeData },
+          updateOne: {
+            filter: { employeeId: employeeData.employeeId },
+            update: { $set: employeeData },
+            upsert: true,
+          },
         });
 
         // ---------- PERFORMANCE & ENGAGEMENT ----------
 
         performanceBulk.push({
-          insertOne: {
-            document: {
-              employeeId: employeeData.employeeId,
-              name: employeeData.name,
-              performanceRating: employeeData.performanceRating ?? 3,
-              potentialRating: employeeData.potentialRating ?? 1,
-              trainingCompleted: employeeData.trainingCompleted ?? 0,
-              trainingTotal: employeeData.trainingTotal ?? 8,
-              weeklyHours: employeeData.weeklyHours ?? 40,
-              hasGrievance: employeeData.hasGrievance ?? false,
-              impactScore: employeeData.impactScore ?? 0,      // <-- Add this
-              flightRiskScore: employeeData.flightRiskScore ?? 0, 
+          updateOne: {
+            filter: { employeeId: employeeData.employeeId },
+            update: {
+              $set: {
+                employeeId: employeeData.employeeId,
+                name: employeeData.name,
+                performanceRating: employeeData.performanceRating ?? 3,
+                potentialRating: employeeData.potentialRating ?? 1,
+                trainingCompleted: employeeData.trainingCompleted ?? 0,
+                trainingTotal: employeeData.trainingTotal ?? 8,
+                weeklyHours: employeeData.weeklyHours ?? 40,
+                hasGrievance: employeeData.hasGrievance ?? false,
+                impactScore: employeeData.impactScore ?? 0,
+                flightRiskScore: employeeData.flightRiskScore ?? 0,
+              },
             },
+            upsert: true,
           },
         });
 
+        employeeFeedbackBulk.push({
+          updateOne: {
+              filter: { employeeId: employeeData.employeeId },
+              update: {
+                  $set: {
+                      employeeId: employeeData.employeeId,
+                      // Generate a unique ID if one doesn't exist, though typically Mongoose handles _id
+                      satisId: `SAT_${employeeData.employeeId}`, 
+                      engagementScore: employeeData.engagementScore ?? 0,
+                      compensationSatisfaction: employeeData.compensationSatisfaction ?? 0,
+                      benefitsSatisfaction: employeeData.benefitsSatisfaction ?? 0,
+                      managementSatisfaction: employeeData.managementSatisfaction ?? 0,
+                      trainingSatisfaction: employeeData.trainingSatisfaction ?? 0,
+                  }
+              },
+              upsert: true
+          }
+      });
         // ---------- SALARY & COMPENSATION -------------
 
         salaryBulk.push({
-          insertOne: {
-            document: {
-              salaryId: `SAL_${employeeData.employeeId}`,
-              employeeId: employeeData.employeeId,
-              name: employeeData.name,
-              salary: employeeData.salary ?? 0,
-              bonus: employeeData.bonus ?? 0,
-              lastRaiseAmount: employeeData.lastRaiseAmount ?? 0,
+          updateOne: {
+            filter: { employeeId: employeeData.employeeId },
+            update: {
+              $set: {
+                salaryId: `SAL_${employeeData.employeeId}`,
+                employeeId: employeeData.employeeId,
+                name: employeeData.name,
+                salary: employeeData.salary ?? 0,
+                bonus: employeeData.bonus ?? 0,
+                lastRaiseAmount: employeeData.lastRaiseAmount ?? 0,
+              },
             },
+            upsert: true,
           },
         });
 
@@ -201,15 +233,27 @@ export const uploadEmployees = [
 
         if (Array.isArray(employeeData.skills)) {
           employeeData.skills.forEach((skill: any) => {
+            const generatedSkillId = `SK_${employeeData.employeeId}_${skill.name.replace(/\s+/g, "_")}`;
+            
             skillsBulk.push({
-              insertOne: {
-                document: {
-                  skillLevelId: `SK_${employeeData.employeeId}_${skill.name}`,
-                  employeeId: employeeData.employeeId,
-                  employeeName: employeeData.name,
-                  skillName: skill.name,
-                  skillLevel: skill.level,
+              updateOne: {
+                // FIX: Filter by the Compound Unique Keys (employeeId + skillName)
+                // This prevents E11000 errors if the skill already exists
+                filter: { 
+                    employeeId: employeeData.employeeId, 
+                    skillName: skill.name 
+                }, 
+                update: {
+                  $set: {
+                    // We still update the ID to match our standard format
+                    skillLevelId: generatedSkillId, 
+                    employeeId: employeeData.employeeId,
+                    employeeName: employeeData.name,
+                    skillName: skill.name,
+                    skillLevel: skill.level,
+                  },
                 },
+                upsert: true,
               },
             });
           });
@@ -229,6 +273,7 @@ export const uploadEmployees = [
       await EmployeeModel.bulkWrite(employeeBulk);
       await PerformanceModel.bulkWrite(performanceBulk);
       await SalaryModel.bulkWrite(salaryBulk);
+      await EmployeeFeedbackModel.bulkWrite(employeeFeedbackBulk);
       if (skillsBulk.length > 0) await SkillsModel.bulkWrite(skillsBulk);
 
       return res.status(201).json({
@@ -239,6 +284,7 @@ export const uploadEmployees = [
         createdPerformance: performanceBulk.length,
         createdSalary: salaryBulk.length,
         createdSkills: skillsBulk.length,
+        createdFeedback:employeeFeedbackBulk.length
         },
         
         errors,

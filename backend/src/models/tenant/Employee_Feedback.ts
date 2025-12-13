@@ -16,7 +16,6 @@ export const EmployeeFeedbackSchema = new Schema<IEmployeeFeedback>({
     satisId: {
       type: String,
       required: true,
-      unique: true,
       index: true
     },
   employeeId: {
