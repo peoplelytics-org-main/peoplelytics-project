@@ -53,7 +53,7 @@ export const validateGetSkills = [
     .withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
-    .isInt({ min: 1, max: 100 })
+    .isInt({ min: 1, max: 1000 })
     .withMessage('Limit must be between 1 and 100'),
   query('employeeId')
     .optional()

@@ -788,10 +788,129 @@ useEffect(() => {
             }
         });
 
+      
+        
+
         const currentSnapshot = Array.from(latestEmployeeRecords.values());
+
+        const salaryMap = new Map<string, { salary: number, bonus: number, lastRaiseAmount:number }>();
+        allSalaries.forEach(sal => {
+             // Ensure strict string matching
+             const empId = String(sal.employeeId); 
+             
+             // CHECK: Does your object use 'amount', 'salary', 'baseSalary', or 'value'?
+             // Inspect the "Salary Property Check" log above to be sure.
+             const amount = sal.amount || sal.salary || sal.value || 0; 
+             const bonus=sal.bonus ||0;
+             const lastRaiseAmount=sal.lastRaiseAmount ||0;
+             
+             salaryMap.set(empId, { salary: Number(amount), bonus: Number(bonus), lastRaiseAmount:Number(lastRaiseAmount) });
+        });
+        
+
+       
+        
+
+        const validEmployeeIds = new Set(currentSnapshot.map(e => String(e.id)));
+        console.log(`🔍 DEBUG: Tracking ${validEmployeeIds.size} visible employees.`);
+
+        // 2. Metrics Maps
+        const performanceMap = new Map();
+        const engagementMap = new Map();
+        const trainingCompletedMap = new Map(); // ✅ Separate map
+        const trainingTotalMap = new Map();     // ✅ Separate map
+        const weeklyHoursMap=new Map();
+        const greivanceMap=new Map();
+        
+        // Combine data sources
+        const allMetrics = [...allPerformanceReviews, ...allAnalytics];
+        console.log(`🔍 DEBUG: Checking ${allMetrics.length} metric records.`);
+        
+        allMetrics.forEach(item => {
+            const empId = String(item.employeeId);
+        
+            if (validEmployeeIds.has(empId)) {
+                
+                // A. Performance
+                if ((item as any).performanceRating != null) {
+                    performanceMap.set(empId, Number((item as any).performanceRating));
+                } else if ((item as any).rating != null) {
+                    performanceMap.set(empId, Number((item as any).rating));
+                }
+                
+                // B. Training - Use separate maps
+                if ((item as any).trainingCompleted != null) {
+                    trainingCompletedMap.set(empId, Number((item as any).trainingCompleted)); // ✅
+                }
+        
+                if ((item as any).trainingTotal != null) {
+                    trainingTotalMap.set(empId, Number((item as any).trainingTotal)); // ✅
+                }
+                if ((item as any).weeklyHours != null) {
+                    weeklyHoursMap.set(empId, Number((item as any).weeklyHours)); // ✅
+                }
+                if ((item as any).hasGrievance != null) {
+                    greivanceMap.set(empId, Boolean((item as any).hasGrievance)); // ✅
+                }
+        
+                // C. Engagement
+                if ((item as any).impactScore != null) {
+                    const val = Number((item as any).impactScore);
+                    engagementMap.set(empId, val * 10);
+                    
+                    if (validEmployeeIds.size < 5) {
+                        console.log(`✅ MATCH: Found ImpactScore ${val} for ${empId}`);
+                    }
+                }
+            } else {
+                if (allMetrics.length > 0 && Math.random() < 0.01) { 
+                    console.log(`⚠️ SKIP: Metric for ${empId} not in visible list.`);
+                }
+            }
+        });
+        
+        // Remove the duplicate allAnalytics loop since it's already in allMetrics
+        
+        // 3. Merge
+        const currentSnapshotWithData = currentSnapshot.map(emp => {
+            const strId = String(emp.id);
+            const compData = salaryMap.get(strId) || { salary: 0, bonus: 0,lastRaiseAmount:0 };
+            const perf = performanceMap.get(strId) || 0;
+            const eng = engagementMap.get(strId) || 0;
+            const employeeSkills = allSkills.filter(s => String(s.employeeId) === strId);
+            
+            return {
+                ...emp,
+                salary: compData.salary,
+                bonus: compData.bonus,
+                lastRaiseAmount:compData.lastRaiseAmount,
+                performanceRating: perf,
+                engagementScore: eng,
+                trainingCompleted: trainingCompletedMap.get(strId) || emp.trainingCompleted || 0, // ✅
+                trainingTotal: trainingTotalMap.get(strId) || emp.trainingTotal || 0, // ✅
+                skills: employeeSkills,
+                weeklyHours:weeklyHoursMap.get(strId) || emp.weeklyHours||0,
+                hasGrievance:greivanceMap.get(strId) || emp.hasGrievance||false
+            };
+        });
+
+        // 🔍 FINAL OUTPUT CHECK
+        if (currentSnapshotWithData.length > 0) {
+             const sample = currentSnapshotWithData[0];
+             console.log("🏁 FINAL MERGED SAMPLE:", { 
+                 name: sample.name, 
+                 salary: sample.salary, 
+                 perf: sample.performanceRating, 
+                 eng: sample.engagementScore 
+             });
+        }
+
+        console.log("🔍 PERF DEBUG:", allPerformanceReviews[0]);
+console.log("🔍 ENGAGEMENT DEBUG (Analytics):", allAnalytics[0]);
+        
         
         return {
-            employeeData: currentSnapshot,
+            employeeData: currentSnapshotWithData,
             historicalEmployeeData: orgHistoricalData,
             attendanceData: allAttendanceData.filter(a => a.organizationId === orgId),
             jobPositions: allJobPositions.filter(j => j.organizationId === orgId),

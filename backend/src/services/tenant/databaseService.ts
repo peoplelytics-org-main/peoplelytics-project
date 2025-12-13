@@ -17,6 +17,8 @@ export class DatabaseService {
     return DatabaseService.instance;
   }
 
+  
+
   /**
    * Get base MongoDB URI without database name
    */
@@ -397,6 +399,7 @@ export class DatabaseService {
       return false;
     }
   }
+  
 
 }
 
