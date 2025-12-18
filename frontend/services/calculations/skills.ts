@@ -3,6 +3,8 @@ import { getEmployeeFlightRisk } from './turnover';
 
 export type SkillMatrixData = Record<string, Record<SkillLevel | 'total', Employee[]>>;
 
+
+
 export const getSkillMatrix = (employees: Employee[]): SkillMatrixData => {
     const matrix: SkillMatrixData = {};
     const uniqueLevels = new Set<string>();

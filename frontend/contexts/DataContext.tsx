@@ -1111,9 +1111,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       };
       const perf = performanceMap.get(strId) || 0;
       const eng = engagementMap.get(strId) || 0;
-      const employeeSkills = allSkills.filter(
-        (s) => String(s.employeeId) === strId
-      );
+      const employeeSkills = allSkills
+        .filter((s) => String(s.employeeId) === strId)
+        .map((s) => ({
+             name: s.skillName,       // Map DB 'skillName' -> UI 'name'
+             level: s.skillLevel,     // Map DB 'skillLevel' -> UI 'level'
+             // Include other fields if needed, like ID
+             id: s.skillLevelId || s._id 
+        }));
 
       const feedback = feedbackMap.get(strId);
 

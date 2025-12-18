@@ -119,6 +119,7 @@ const DashboardPage: React.FC = () => {
     // ... (All useMemo hooks for data calculation remain the same) ...
      const uniqueValues = useMemo(() => {
         const activeEmployees = displayedData.filter(e => !e.terminationDate);
+        console.log(activeEmployees)
         return {
             // FIX: Add explicit sort with localeCompare and filter out falsy values to prevent type errors.
             // FIX: Added explicit string types to sort callback arguments to resolve 'unknown' type error.
