@@ -67,6 +67,8 @@ interface DataContextType {
   historicalEmployeeData: Employee[]; // This is ALL historical data for the org
   appendEmployeeData: (data: Employee[]) => void;
   replaceEmployeeDataForOrg: (orgId: string, data: Employee[]) => void;
+  refreshEmployeeData: () => Promise<void>; // Refresh employee data from API
+  refreshAttendanceData: () => Promise<void>; // Refresh attendance data from API
   globalHeadcount: number;
   attendanceData: AttendanceRecord[];
   setAttendanceData: React.Dispatch<React.SetStateAction<AttendanceRecord[]>>;
@@ -871,6 +873,70 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
     []
   );
 
+  // Refresh employee data from API
+  const refreshEmployeeData = useCallback(async () => {
+    if (!currentUser || !effectiveOrgId) {
+      console.warn("Cannot refresh: No user or org ID");
+      return;
+    }
+
+    try {
+      setIsLoadingEmployees(true);
+      const response = await employeeApi.getAll(
+        { limit: 1000 },
+        effectiveOrgId
+      );
+
+      if (response.success) {
+        const potentialArray = response.data?.data || response.data;
+        if (Array.isArray(potentialArray)) {
+          const mappedEmployees = potentialArray.map((emp: any) =>
+            mapBackendEmployeeToFrontend(emp, effectiveOrgId)
+          );
+          setAllEmployeeData(mappedEmployees);
+        } else {
+          console.warn("Refresh: Data was not an array");
+          setAllEmployeeData([]);
+        }
+      } else {
+        console.error("Refresh failed:", response.error);
+      }
+    } catch (error) {
+      console.error("Error refreshing employee data:", error);
+    } finally {
+      setIsLoadingEmployees(false);
+    }
+  }, [currentUser, effectiveOrgId]);
+
+  // Refresh attendance data from API
+  const refreshAttendanceData = useCallback(async () => {
+    if (!currentUser || !effectiveOrgId) {
+      console.warn("Cannot refresh: No user or org ID");
+      return;
+    }
+
+    try {
+      setIsLoadingAttendance(true);
+      const response = await attendanceApi.getAll(
+        { limit: 1000 },
+        effectiveOrgId
+      );
+
+      if (response.success && response.data) {
+        const mappedAttendance = response.data.data.map((att: any) =>
+          mapBackendAttendanceToFrontend(att, effectiveOrgId)
+        );
+        setAllAttendanceData(mappedAttendance);
+      } else {
+        console.error("Refresh attendance failed:", response.error);
+      }
+    } catch (error) {
+      console.error("Error refreshing attendance data:", error);
+    } finally {
+      setIsLoadingAttendance(false);
+    }
+  }, [currentUser, effectiveOrgId]);
+
   // Fetch the current user's organization (for non-Super Admins)
   useEffect(() => {
     if (!currentUser) return;
@@ -1244,6 +1310,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       historicalEmployeeData,
       appendEmployeeData,
       replaceEmployeeDataForOrg,
+      refreshEmployeeData,
+      refreshAttendanceData,
       attendanceData,
       setAttendanceData: setAllAttendanceData,
       jobPositions,
@@ -1292,6 +1360,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
       historicalEmployeeData,
       appendEmployeeData,
       replaceEmployeeDataForOrg,
+      refreshEmployeeData,
+      refreshAttendanceData,
       attendanceData,
       jobPositions,
       recruitmentFunnels,

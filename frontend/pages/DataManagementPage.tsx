@@ -12,10 +12,10 @@ type ActiveTab = 'import' | 'analysis' | 'export' | 'integrations' | 'convert';
 
 const TABS: { id: ActiveTab; name: string; icon: React.FC<any> }[] = [
     { id: 'import', name: 'Import Data', icon: UploadCloud },
-    { id: 'analysis', name: 'Run Analysis', icon: TestTube2 },
     { id: 'export', name: 'Export Data', icon: FileDown },
+    { id: 'convert', name: 'Excel to CSV', icon: FileCog },
+    { id: 'analysis', name: 'Run Analysis', icon: TestTube2 },
     { id: 'integrations', name: 'Integrations', icon: Zap },
-    { id: 'convert', name: 'Excel Converter', icon: FileCog },
 ];
 
 const DataManagementPage: React.FC = () => {

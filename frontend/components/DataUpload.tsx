@@ -67,7 +67,7 @@ const parseSkills = (skillsString: string): Skill[] => {
 
 const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) => {
     const { addNotification } = useNotifications();
-    const { currentOrgHeadcount, currentOrgHeadcountLimit } = useData();
+    const { currentOrgHeadcount, currentOrgHeadcountLimit, refreshEmployeeData } = useData();
     const [step, setStep] = useState<'select' | 'validate' | 'complete'>('select');
     const [fileName, setFileName] = useState<string | null>(null);
     const [errorRows, setErrorRows] = useState<ErrorRow[]>([]);
@@ -275,9 +275,9 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
                     type: 'success',
                 });
                 // Refresh employee data
+                await refreshEmployeeData();
                 if (onComplete) {
-                    // Trigger data refresh
-                    window.location.reload();
+                    onComplete([]); // Trigger callback if needed
                 }
             } else {
                 addNotification({
@@ -321,7 +321,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
                     message: `Uploaded ${created} records. ${failed > 0 ? `${failed} failed.` : ''}`,
                     type: 'success',
                 });
-                window.location.reload();
+                await refreshEmployeeData();
             } else {
                 addNotification({
                     title: 'Upload Failed',
@@ -377,7 +377,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
                     message: `Uploaded ${created} valid records. ${skippedCount} rows with errors were skipped.`,
                     type: 'warning',
                 });
-                window.location.reload();
+                await refreshEmployeeData();
             } else {
                 addNotification({
                     title: 'Upload Failed',
@@ -467,7 +467,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
                         message: `Uploaded ${created} records (${validRows.length} original + ${newlyValid.length} fixed).`,
                         type: 'success',
                     });
-                    window.location.reload();
+                    await refreshEmployeeData();
                 } else {
                     addNotification({
                         title: 'Upload Failed',

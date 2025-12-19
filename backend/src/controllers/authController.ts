@@ -46,6 +46,7 @@ export const loginUser = async (req: Request, res: Response) => {
     const { username, password, organizationId } = req.body;
 
     console.log("\n--- NEW LOGIN ATTEMPT ---");
+    console.log(`Username: ${username}, OrganizationId: ${organizationId || 'EMPTY (Super Admin)'}`);
 
     if (!username || !password) {
       return res.status(400).json({ message: "Please provide username and password" });
@@ -70,56 +71,82 @@ export const loginUser = async (req: Request, res: Response) => {
       };
     };
     
-    // =========================================================
-    // STEP 1: ATTEMPT MASTER DB LOGIN (Super Admin)
-    // =========================================================
-    // We explicitly check the Master DB first
-    let user: any = await User.findOne(buildUserQuery(lowercaseInput)).select("+password");
-
+    let user: any = null;
     let isTenantUser = false;
     let activeOrgId = null;
 
     // =========================================================
-    // STEP 2: IF NOT MASTER, ATTEMPT TENANT DB LOGIN
+    // NEW LOGIC: Organization ID determines login flow
     // =========================================================
-    if (!user) {
-      if (!organizationId) {
-        // If not in Master, and no Org ID provided, we cannot proceed
-        return res.status(401).json({ message: "Invalid credentials or missing Organization ID." });
-      }
-
-      console.log(`DEBUG: User not in Master. Checking Tenant DB: ${organizationId}`);
+    // If organizationId is provided → Go directly to that organization's database
+    // If organizationId is empty → Only check Master DB (Super Admin)
+    // This prevents ambiguity when multiple organizations have users with the same username
+    
+    if (organizationId && organizationId.trim() !== '') {
+      // =========================================================
+      // TENANT USER LOGIN (Org Admin, HR Executive, Executive)
+      // =========================================================
+      // Organization ID is provided → Must be a tenant user
+      // Go directly to the specified organization's database
+      console.log(`DEBUG: Organization ID provided. Checking Tenant DB: ${organizationId}`);
 
       try {
         // Normalize organization ID (handle both "org_xxx" and "xxx" formats)
-        // DatabaseService normalizes by removing "org_" prefix, but we need to pass the full orgId
-        // The service will handle normalization internally
         const normalizedOrgId = organizationId.startsWith('org_') ? organizationId : `org_${organizationId}`;
         console.log(`DEBUG: Normalized Org ID: ${normalizedOrgId}`);
         
         // Get the User Model specifically connected to this Organization's DB
-        // This uses the helper method we added to DatabaseService
         const TenantUser = dbService.getTenantUserModel(normalizedOrgId);
         
-        console.log(`DEBUG: Searching for user with query:`, JSON.stringify(buildUserQuery(lowercaseInput), null, 2));
+        console.log(`DEBUG: Searching for user in organization DB with query:`, JSON.stringify(buildUserQuery(lowercaseInput), null, 2));
         user = await TenantUser.findOne(buildUserQuery(lowercaseInput)).select("+password");
 
         if (user) {
-            console.log(`DEBUG: User found in tenant DB: ${user.username}`);
-            isTenantUser = true;
-            activeOrgId = normalizedOrgId;
+          console.log(`DEBUG: User found in tenant DB: ${user.username}, Role: ${user.role}`);
+          isTenantUser = true;
+          activeOrgId = normalizedOrgId;
         } else {
-            console.log(`DEBUG: User not found in tenant DB with query`);
+          console.log(`DEBUG: User not found in tenant DB`);
+          return res.status(401).json({ 
+            message: "Invalid credentials. Please check your username, password, and Organization ID." 
+          });
         }
 
       } catch (err) {
         console.error("Error connecting to tenant DB:", err);
-        return res.status(500).json({ message: "Error accessing organization database." });
+        return res.status(500).json({ 
+          message: "Error accessing organization database. Please verify the Organization ID is correct." 
+        });
       }
+    } else {
+      // =========================================================
+      // SUPER ADMIN LOGIN
+      // =========================================================
+      // No organization ID → Only check Master DB (Super Admin)
+      console.log(`DEBUG: No Organization ID provided. Checking Master DB (Super Admin only)`);
+      
+      user = await User.findOne(buildUserQuery(lowercaseInput)).select("+password");
+      
+      if (!user) {
+        return res.status(401).json({ 
+          message: "Invalid credentials. If you are an organization member, please provide your Organization ID." 
+        });
+      }
+      
+      // Verify user is actually Super Admin
+      if (user.role !== 'Super Admin') {
+        return res.status(401).json({ 
+          message: "Organization ID is required for your account. Please provide your Organization ID to login." 
+        });
+      }
+      
+      console.log(`DEBUG: Super Admin found in Master DB: ${user.username}`);
+      isTenantUser = false;
+      activeOrgId = "MASTER";
     }
 
     // =========================================================
-    // STEP 3: VALIDATE PASSWORD
+    // STEP 2: VALIDATE PASSWORD
     // =========================================================
     if (!user) {
       return res.status(401).json({ message: "Invalid username or password" });
@@ -132,6 +159,14 @@ export const loginUser = async (req: Request, res: Response) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Invalid username or password" });
+    }
+
+    // Additional validation: For tenant users, verify they belong to the correct organization
+    if (isTenantUser && user.organizationId && user.organizationId !== activeOrgId) {
+      console.error(`ERROR: User ${user.username} organizationId (${user.organizationId}) doesn't match requested org (${activeOrgId})`);
+      return res.status(403).json({ 
+        message: "User does not belong to the specified organization. Please verify your Organization ID." 
+      });
     }
 
     // =========================================================

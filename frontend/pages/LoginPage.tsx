@@ -52,7 +52,8 @@ const LoginPage: React.FC = () => {
         const signal = controller.signal;
 
         const fetchOrganizations = async () => {
-            if (!organizationId || organizationId.length < 2) {
+            // Allow search with 1 character minimum for semantic search
+            if (!organizationId || organizationId.trim().length === 0) {
                 setOrgOptions([]);
                 return;
             }
@@ -77,8 +78,17 @@ const LoginPage: React.FC = () => {
                 
                 // Based on the controller structure we created:
                 // result looks like: { success: true, data: [...] }
-                if (result.success) {
-                    setOrgOptions(result.data);
+                // Backend returns: { orgId, name }
+                if (result.success && Array.isArray(result.data)) {
+                    // Map backend response to frontend format
+                    const mappedOrgs = result.data.map((org: any) => ({
+                        orgId: org.orgId || org._id || org.id,
+                        id: org.orgId || org._id || org.id, // Keep both for compatibility
+                        name: org.name || ''
+                    }));
+                    setOrgOptions(mappedOrgs);
+                } else {
+                    setOrgOptions([]);
                 }
             } catch (err: any) {
                 // Ignore "AbortError" because it just means the user typed again
@@ -110,7 +120,7 @@ const LoginPage: React.FC = () => {
     }, [organizationId, showOrgDropdown]);
 
     const handleOrgSelect = (org: OrganizationOption) => {
-        setOrganizationId(org.orgId);
+        setOrganizationId(org.orgId || org.id);
         setShowOrgDropdown(false);
     };
 
@@ -119,11 +129,14 @@ const LoginPage: React.FC = () => {
         setError('');
         setIsLoading(true);
         try {
-            // Pass the organizationId (it can be empty string, backend handles that)
-            await login(username, password, organizationId);
+            // Trim organizationId - empty string means Super Admin login
+            const trimmedOrgId = organizationId.trim();
+            
+            // Pass the organizationId (empty string for Super Admin, required for tenant users)
+            await login(username, password, trimmedOrgId);
             navigate('/app/home');
         } catch (err: any) {
-            // Handle specific backend message: "Invalid credentials. If you are a team member..."
+            // Handle specific backend messages
             const msg = err.response?.data?.message || err.message || 'Invalid credentials.';
             setError(msg);
         } finally {
@@ -168,7 +181,7 @@ const LoginPage: React.FC = () => {
                                     autoComplete="off"
                                 />
                                 {/* Indicator Icon inside Input */}
-                                <div className="absolute right-3 top-[34px] text-text-secondary pointer-events-none">
+                                <div className="absolute right-3 top-[34px] text-gray-400 dark:text-text-secondary pointer-events-none">
                                     {isSearchingOrg ? (
                                         <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
@@ -176,29 +189,31 @@ const LoginPage: React.FC = () => {
                                     )}
                                 </div>
                             </div>
-                            <p className="text-xs text-text-secondary mt-1">Required for organization members</p>
+                            <p className="text-xs text-text-secondary mt-1">
+                                Required for organization members (Org Admin, HR Executive, Executive). Leave empty for Super Admin.
+                            </p>
 
                             {/* DROPDOWN RESULTS */}
-                            {showOrgDropdown && organizationId.length > 0 && (
-                                <div className="absolute z-50 w-full mt-1 bg-black dark:bg-gray-800 border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                            {showOrgDropdown && organizationId.trim().length > 0 && (
+                                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
                                     {orgOptions.length > 0 ? (
                                         <ul className="py-1">
                                             {orgOptions.map((org) => (
                                                 <li 
-                                                    key={org.id}
+                                                    key={org.orgId || org.id}
                                                     onClick={() => handleOrgSelect(org)}
-                                                    className="px-4 py-2 hover:bg-gray-700 dark:hover:bg-gray-700 cursor-pointer text-sm flex items-center justify-between group"
+                                                    className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm flex items-center justify-between group transition-colors"
                                                 >
                                                     <div>
-                                                        <p className="font-medium text-text-primary">{org.name}</p>
-                                                        <p className="text-xs text-text-secondary group-hover:text-primary-600">{org.id}</p>
+                                                        <p className="font-medium text-gray-900 dark:text-text-primary">{org.name}</p>
+                                                        <p className="text-xs text-gray-500 dark:text-text-secondary group-hover:text-primary-600">{org.orgId || org.id}</p>
                                                     </div>
-                                                    {organizationId === org.id && <Check className="h-4 w-4 text-green-500"/>}
+                                                    {(organizationId === org.orgId || organizationId === org.id) && <Check className="h-4 w-4 text-green-500"/>}
                                                 </li>
                                             ))}
                                         </ul>
                                     ) : (
-                                        <div className="px-4 py-3 text-sm text-text-secondary">
+                                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-text-secondary">
                                             {isSearchingOrg ? 'Searching...' : 'No organizations found.'}
                                         </div>
                                     )}
@@ -228,7 +243,7 @@ const LoginPage: React.FC = () => {
                                     onChange={e => setPassword(e.target.value)}
                                     placeholder="Enter your password"
                                     required
-                                    className="w-full bg-background border border-border rounded-md px-3 py-2 pr-10 text-text-primary focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                                    className="w-full bg-white dark:bg-background border border-gray-300 dark:border-border rounded-md px-3 py-2 pr-10 text-gray-900 dark:text-text-primary placeholder:text-gray-400 dark:placeholder:text-text-secondary focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:outline-none transition-colors"
                                 />
                                 <button
                                     type="button"

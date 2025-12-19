@@ -23,6 +23,7 @@ import {
   BrainCircuit,
 } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useCurrency } from "../../hooks/useCurrency";
 
 const InfoPill: React.FC<{
   icon: React.FC<any>;
@@ -133,7 +134,6 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   employee,
   allEmployees,
 }) => {
-  const { currency } = useTheme();
   const trainingProgress =
     employee.trainingTotal > 0
       ? (employee.trainingCompleted / employee.trainingTotal) * 100
@@ -162,12 +162,8 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
   const SuccessIcon = successionStatusConfig[employee.successionStatus].icon;
   const successColor = successionStatusConfig[employee.successionStatus].color;
 
-  const currencySymbols: Record<Currency, string> = {
-    PKR: "Rs",
-    USD: "$",
-    EUR: "€",
-    GBP: "£",
-  };
+  // Use currency formatter hook
+  const { format } = useCurrency();
 
   const skillOrder: SkillLevel[] = [
     "Novice",
@@ -239,9 +235,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
           label="Salary"
           value={
             employee.salary > 0
-              ? `${
-                  currencySymbols[currency]
-                }${employee.salary.toLocaleString()}`
+              ? format(employee.salary)
               : "Anonymized"
           }
         />
@@ -441,9 +435,7 @@ const EmployeeDetailView: React.FC<EmployeeDetailViewProps> = ({
               label="Last Raise Amount"
               value={
                 employee.lastRaiseAmount
-                  ? `${
-                      currencySymbols[currency]
-                    }${employee.lastRaiseAmount.toLocaleString()}`
+                  ? format(employee.lastRaiseAmount)
                   : "N/A"
               }
             />

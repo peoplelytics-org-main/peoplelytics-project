@@ -2,6 +2,8 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useData } from '../../contexts/DataContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCurrency } from '../../hooks/useCurrency';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import { useReportSettings } from '../../contexts/ReportSettingsContext';
 import Card, { CardHeader, CardTitle, CardContent, CardDescription } from '../ui/Card';
 import ChartCard from '../ChartCard';
@@ -137,6 +139,7 @@ const skillLevelColors: Record<SkillLevel, string> = {
 const StandardReportsView: React.FC = () => {
     const { displayedData, attendanceData, jobPositions, recruitmentFunnels } = useData();
     const { mode, currency, theme } = useTheme();
+    const { format } = useCurrency();
     const { skillScarcityKey } = useReportSettings();
     const navigate = useNavigate();
     const [activeReport, setActiveReport] = useState<ReportType>('diversity');
@@ -915,7 +918,7 @@ const StandardReportsView: React.FC = () => {
                         </ChartCard>
                         <ChartCard title="Pay for Performance Analysis" description="Correlation between employee performance and salary.">
                              <div className="h-96 w-full">
-                                <Scatter data={chartData.performance.payForPerformance} options={{ ...baseChartOptions, scales: { x: { title: { display: true, text: 'Performance Rating', color: textPrimaryColor } }, y: { title: { display: true, text: `Salary (${currency})`, color: textPrimaryColor } } }, plugins: { ...baseChartOptions.plugins, tooltip: { callbacks: { label: (context: any) => { const raw = context.raw; return `${raw.label}: Perf ${raw.x.toFixed(1)}, Salary ${currency}${raw.y.toLocaleString()}`; } } } } }} />
+                                <Scatter data={chartData.performance.payForPerformance} options={{ ...baseChartOptions, scales: { x: { title: { display: true, text: 'Performance Rating', color: textPrimaryColor } }, y: { title: { display: true, text: `Salary (${currency})`, color: textPrimaryColor } } }, plugins: { ...baseChartOptions.plugins, tooltip: { callbacks: { label: (context: any) => { const raw = context.raw; return `${raw.label}: Perf ${raw.x.toFixed(1)}, Salary ${formatCurrency(raw.y, currency)}`; } } } } }} />
                             </div>
                         </ChartCard>
                          <ChartCard title="Performance Over Time (Simulated)" description="Simulated trend of average performance ratings over the last 2 years.">

@@ -126,9 +126,12 @@ const OrganizationSchema = new Schema<IOrganization>({
 
 // Indexes for better query performance
 OrganizationSchema.index({ orgId: 1 });
+OrganizationSchema.index({ name: 1 }); // Index for semantic search on organization name
 OrganizationSchema.index({ status: 1 });
 OrganizationSchema.index({ package: 1 });
 OrganizationSchema.index({ subscriptionEndDate: 1 });
+// Compound index for search queries (name + status)
+OrganizationSchema.index({ name: 1, status: 1 });
 
 export const Organization = mongoose.model<IOrganization>('Organization', OrganizationSchema);
 

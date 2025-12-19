@@ -26,13 +26,27 @@ export const uploadApi = {
         body: formData,
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        // If response is not JSON, read as text
+        const text = await response.text();
+        return {
+          success: false,
+          error: text || `HTTP error! status: ${response.status}`,
+          errors: [],
+        };
+      }
 
       if (!response.ok) {
+        // Don't throw errors - just return failure response
+        // This prevents errors from bubbling up and triggering logout
         return {
           success: false,
           error: data.error || data.message || `HTTP error! status: ${response.status}`,
-          errors: data.errors,
+          errors: data.errors || [],
         };
       }
 
@@ -42,9 +56,11 @@ export const uploadApi = {
       };
     } catch (error: any) {
       console.error('Upload employees failed:', error);
+      // Don't re-throw - just return error response
       return {
         success: false,
         error: error.message || 'Network error occurred',
+        errors: [],
       };
     }
   },
@@ -63,13 +79,24 @@ export const uploadApi = {
         body: formData,
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        const text = await response.text();
+        return {
+          success: false,
+          error: text || `HTTP error! status: ${response.status}`,
+          errors: [],
+        };
+      }
 
       if (!response.ok) {
         return {
           success: false,
           error: data.error || data.message || `HTTP error! status: ${response.status}`,
-          errors: data.errors,
+          errors: data.errors || [],
         };
       }
 
@@ -79,9 +106,11 @@ export const uploadApi = {
       };
     } catch (error: any) {
       console.error('Upload attendance failed:', error);
+      // Don't re-throw - just return error response
       return {
         success: false,
         error: error.message || 'Network error occurred',
+        errors: [],
       };
     }
 
@@ -98,13 +127,24 @@ export const uploadApi = {
         body: formData,
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        const text = await response.text();
+        return {
+          success: false,
+          error: text || `HTTP error! status: ${response.status}`,
+          errors: [],
+        };
+      }
 
       if (!response.ok) {
         return {
           success: false,
           error: data.error || data.message || `HTTP error! status: ${response.status}`,
-          errors: data.errors,
+          errors: data.errors || [],
         };
       }
 
@@ -114,9 +154,11 @@ export const uploadApi = {
       };
     } catch (error: any) {
       console.error('Upload recruitment funnels failed:', error);
+      // Don't re-throw - just return error response
       return {
         success: false,
         error: error.message || 'Network error occurred',
+        errors: [],
       };
     }
   },

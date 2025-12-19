@@ -119,15 +119,10 @@ export const getOrganizationById = async (req: Request, res: Response): Promise<
 
 export const searchOrganizations = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { query } = req.query; // Get search term from query params (e.g., ?query=inn)
+    const { query } = req.query; // Get search term from query params (e.g., ?query=f)
 
-    console.log('------------------------------------------------');
-    console.log('1. Search Query:', query);
-    console.log('2. Current DB Name:', mongoose.connection.name); 
-    console.log('3. Host:', mongoose.connection.host);
-
-    // If query is empty or too short, return empty array
-    if (!query || typeof query !== 'string' || query.length < 2) {
+    // If query is empty, return empty array
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
       res.status(200).json({
         success: true,
         data: []
@@ -135,17 +130,23 @@ export const searchOrganizations = async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Perform a case-insensitive Regex search on both Name and OrgID
-    // .select('orgId name') ensures we ONLY send back what is needed (Security best practice)
-    // .limit(5) ensures the UI isn't overwhelmed with huge lists
+    // Sanitize query - escape special regex characters
+    const sanitizedQuery = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Perform semantic search: organizations starting with the query (case-insensitive)
+    // Primary search on organization name (exact name created by Super Admin)
+    // Secondary search on orgId as fallback
+    // Using ^ to match strings that START WITH the query
     const organizations = await Organization.find({
       $or: [
-        { name: { $regex: query, $options: 'i' } },
-        { orgId: { $regex: query, $options: 'i' } }
-      ]
+        { name: { $regex: `^${sanitizedQuery}`, $options: 'i' } }, // Starts with query (primary)
+        { orgId: { $regex: `^${sanitizedQuery}`, $options: 'i' } } // Starts with query (fallback)
+      ],
+      status: 'Active' // Only show active organizations
     })
-    .select('orgId name') 
-    .limit(5);
+    .select('orgId name')
+    .sort({ name: 1 }) // Sort alphabetically by name
+    .limit(10); // Increased limit for better UX
 
     res.status(200).json({
       success: true,
@@ -153,13 +154,11 @@ export const searchOrganizations = async (req: Request, res: Response): Promise<
     });
 
   } catch (error) {
-    // logger.error('Error searching organizations:', error); 
-    // Use console.error if logger is not available in context
-    console.error('Error searching organizations:', error);
-    
+    logger.error('Error searching organizations:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to search organizations'
+      message: 'Failed to search organizations',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 };

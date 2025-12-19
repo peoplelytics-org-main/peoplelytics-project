@@ -38,8 +38,26 @@ const handleResponse = async (response: Response) => {
 // In a real app, this would be a secure HttpOnly cookie or similar token.
 //const MOCK_AUTH_TOKEN_KEY = 'mock_auth_token';
 
+// Storage key for persisting user data
+const USER_STORAGE_KEY = 'app_user_data';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    // Initialize with stored user data if available (for page reload persistence)
+    const [currentUser, setCurrentUser] = useState<User | null>(() => {
+        try {
+            const stored = sessionStorage.getItem(USER_STORAGE_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                // Only restore if data looks valid
+                if (parsed && parsed.id && parsed.username) {
+                    return parsed;
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to restore user from storage:', error);
+        }
+        return null;
+    });
     const [isLoading, setIsLoading] = useState(true);
     const isCheckingAuthRef = React.useRef(false);
     const hasCheckedAuth = React.useRef(false);
@@ -67,18 +85,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Don't update user state, keep existing state
             return;
           }
-          // For other errors, set user to null
-          setCurrentUser(null);
+          
+          // Only log out on 401 (Unauthorized) - this means the token is invalid/expired
+          // For other errors (500, 503, network errors), keep the user logged in
+          if (response.status === 401) {
+            console.warn('Authentication failed - token invalid/expired, logging out');
+            setCurrentUser(null);
+            // Clear stored user data
+            try {
+                sessionStorage.removeItem(USER_STORAGE_KEY);
+            } catch (error) {
+                console.warn('Failed to clear user from storage:', error);
+            }
+            return;
+          }
+          
+          // For other errors (500, 503, etc.), keep user logged in but log the error
+          // Use stored user data if available (for page reload resilience)
+          console.warn('Auth check failed with status:', response.status, '- keeping user logged in with stored data');
+          // Don't update user state, keep existing state (or restore from storage)
+          if (!currentUser) {
+              try {
+                  const stored = sessionStorage.getItem(USER_STORAGE_KEY);
+                  if (stored) {
+                      const parsed = JSON.parse(stored);
+                      if (parsed && parsed.id && parsed.username) {
+                          setCurrentUser(parsed);
+                      }
+                  }
+              } catch (error) {
+                  console.warn('Failed to restore user from storage:', error);
+              }
+          }
           return;
         }
     
         const data = await response.json();
-        setCurrentUser(data.user||null);
+        const userData = data.user || null;
+        setCurrentUser(userData);
+        
+        // Persist user data to sessionStorage for page reload persistence
+        if (userData) {
+            try {
+                sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+            } catch (error) {
+                console.warn('Failed to save user to storage:', error);
+            }
+        } else {
+            // Clear storage if no user
+            try {
+                sessionStorage.removeItem(USER_STORAGE_KEY);
+            } catch (error) {
+                console.warn('Failed to clear user from storage:', error);
+            }
+        }
+        
         hasCheckedAuth.current = true;
       } catch (error) {
-        // Only set to null if it's not a rate limit error
-        if (error instanceof Error && !error.message.includes('429')) {
-          setCurrentUser(null);
+        // Network errors or other exceptions - don't log out, just log the error
+        // Only log out if we explicitly get a 401 response
+        console.warn('Auth check error (network/server issue) - keeping user logged in:', error);
+        // Don't set currentUser to null on network errors
+        // Try to restore from storage if currentUser is null
+        if (!currentUser) {
+            try {
+                const stored = sessionStorage.getItem(USER_STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed && parsed.id && parsed.username) {
+                        setCurrentUser(parsed);
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to restore user from storage:', e);
+            }
         }
       } finally {
         setIsLoading(false);
@@ -112,7 +192,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const data = await handleResponse(response);
           
           // We get the user data from the API response
-          setCurrentUser(data.user);
+          const userData = data.user;
+          setCurrentUser(userData);
+          
+          // Persist user data to sessionStorage for page reload persistence
+          if (userData) {
+              try {
+                  sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+              } catch (error) {
+                  console.warn('Failed to save user to storage:', error);
+              }
+          }
           
           // No token handling needed! The browser stores the httpOnly cookie automatically.
         } catch (error) {
@@ -134,6 +224,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } finally {
           // Always clear the user from the client state
           setCurrentUser(null);
+          // Clear stored user data
+          try {
+              sessionStorage.removeItem(USER_STORAGE_KEY);
+          } catch (error) {
+              console.warn('Failed to clear user from storage:', error);
+          }
         }
       }, []);
 

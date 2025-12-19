@@ -65,7 +65,7 @@ const smartParseDate = (dateInput: any): string | null => {
 
 
 const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organizationId }) => {
-  const { employeeData } = useData();
+  const { employeeData, refreshAttendanceData } = useData();
   const { addNotification } = useNotifications();
 
   const [step, setStep] = useState<'select' | 'validate' | 'complete'>('select');
@@ -179,7 +179,7 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
           message: `Successfully uploaded ${created} attendance records. ${failed > 0 ? `${failed} failed.` : ''}`,
           type: 'success',
         });
-        window.location.reload();
+        await refreshAttendanceData();
       } else {
         addNotification({
           title: 'Upload Failed',
@@ -259,7 +259,7 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
               message: `Uploaded ${created} records (${validRows.length} original + ${newlyValid.length} fixed).`,
               type: 'success',
             });
-            window.location.reload();
+            await refreshAttendanceData();
           } else {
             addNotification({
               title: 'Upload Failed',
