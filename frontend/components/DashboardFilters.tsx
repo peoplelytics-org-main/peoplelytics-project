@@ -1,5 +1,6 @@
 import React from 'react';
 import Card from './ui/Card';
+import { useCurrency } from '../hooks/useCurrency';
 
 interface DashboardFiltersProps {
   filters: {
@@ -39,18 +40,21 @@ const SelectInput: React.FC<React.SelectHTMLAttributes<HTMLSelectElement> & { la
 );
 
 
-const RevenueInput: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => (
-    <div className="w-full">
-        <label htmlFor={props.id} className="block text-sm font-medium text-text-secondary mb-1">{label}</label>
-        <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-text-secondary">$</span>
-            <input
-                {...props}
-                className="w-full bg-background border border-border rounded-md pl-7 pr-3 py-2 text-text-primary focus:ring-2 focus:ring-primary-500 focus:outline-none"
-            />
+const RevenueInput: React.FC<React.InputHTMLAttributes<HTMLInputElement> & { label: string }> = ({ label, ...props }) => {
+    const { symbol } = useCurrency();
+    return (
+        <div className="w-full">
+            <label htmlFor={props.id} className="block text-sm font-medium text-text-secondary mb-1">{label}</label>
+            <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-text-secondary">{symbol}</span>
+                <input
+                    {...props}
+                    className="w-full bg-background border border-border rounded-md pl-7 pr-3 py-2 text-text-primary focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                />
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 
 const DashboardFilters: React.FC<DashboardFiltersProps> = ({ filters, setFilters, totalRevenue, setTotalRevenue, uniqueValues, isDepartmentDisabled }) => {

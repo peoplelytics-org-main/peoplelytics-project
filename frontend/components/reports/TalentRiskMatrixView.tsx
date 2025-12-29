@@ -59,19 +59,19 @@ const riskCategories: RiskCategory[] = ['Low', 'Medium', 'High'];
 
 const perfRiskCellConfig: Record<PerformanceCategory, Record<RiskCategory, { title: string; color: string; textColor: string; description: string; }>> = {
   High: {
-    Low: { title: "Future Stars", color: "bg-green-800/50 border-green-600", textColor: "text-green-300", description: "High performers, low flight risk. Nurture and develop for leadership." },
-    Medium: { title: "High Potentials", color: "bg-emerald-800/50 border-emerald-600", textColor: "text-emerald-300", description: "Strong performers to retain. Monitor engagement and growth opportunities." },
-    High: { title: "Critical Flight Risk", color: "bg-yellow-700/50 border-yellow-500", textColor: "text-yellow-300", description: "High-impact employees at risk of leaving. Immediate retention focus required." }
+    Low: { title: "Future Stars", color: "bg-green-500/80 border-green-400", textColor: "text-green-50", description: "High performers, low flight risk. Nurture and develop for leadership." },
+    Medium: { title: "High Potentials", color: "bg-emerald-500/80 border-emerald-400", textColor: "text-emerald-50", description: "Strong performers to retain. Monitor engagement and growth opportunities." },
+    High: { title: "Critical Flight Risk", color: "bg-yellow-500/80 border-yellow-400", textColor: "text-yellow-50", description: "High-impact employees at risk of leaving. Immediate retention focus required." }
   },
   Medium: {
-    Low: { title: "Solid Performers", color: "bg-blue-800/50 border-blue-600", textColor: "text-blue-300", description: "Core of the workforce. Keep engaged and recognize contributions." },
-    Medium: { title: "Core Employees", color: "bg-gray-700/50 border-gray-500", textColor: "text-gray-300", description: "Steady contributors. Ensure they have clear career paths." },
-    High: { title: "At-Risk Performers", color: "bg-orange-800/50 border-orange-600", textColor: "text-orange-300", description: "Satisfactory performers who are a flight risk. Investigate reasons." }
+    Low: { title: "Solid Performers", color: "bg-blue-500/80 border-blue-400", textColor: "text-blue-50", description: "Core of the workforce. Keep engaged and recognize contributions." },
+    Medium: { title: "Core Employees", color: "bg-indigo-500/80 border-indigo-400", textColor: "text-indigo-50", description: "Steady contributors. Ensure they have clear career paths." },
+    High: { title: "At-Risk Performers", color: "bg-orange-500/80 border-orange-400", textColor: "text-orange-50", description: "Satisfactory performers who are a flight risk. Investigate reasons." }
   },
   Low: {
-    Low: { title: "Misaligned Talent", color: "bg-purple-900/50 border-purple-700", textColor: "text-purple-400", description: "Low performers, low flight risk. Consider role fit or performance management." },
-    Medium: { title: "Needs Development", color: "bg-red-900/50 border-red-700", textColor: "text-red-400", description: "Low performers with potential to leave. Requires coaching and a development plan." },
-    High: { title: "Urgent Concern", color: "bg-red-800/50 border-red-600", textColor: "text-red-300", description: "Low performers who are actively disengaged. Requires immediate intervention." }
+    Low: { title: "Misaligned Talent", color: "bg-purple-500/80 border-purple-400", textColor: "text-purple-50", description: "Low performers, low flight risk. Consider role fit or performance management." },
+    Medium: { title: "Needs Development", color: "bg-pink-500/80 border-pink-400", textColor: "text-pink-50", description: "Low performers with potential to leave. Requires coaching and a development plan." },
+    High: { title: "Urgent Concern", color: "bg-red-500/80 border-red-400", textColor: "text-red-50", description: "Low performers who are actively disengaged. Requires immediate intervention." }
   }
 };
 
@@ -131,10 +131,10 @@ const PerformanceRiskMatrix: React.FC = () => {
 type QuadrantKey = 'HighImpact_HighRisk' | 'HighImpact_LowRisk' | 'LowImpact_HighRisk' | 'LowImpact_LowRisk';
 
 const quadrantInfo: Record<QuadrantKey, { title: string; description: string; action: string; color: string; bgColor: string }> = {
-    'HighImpact_HighRisk': { title: "Critical Retention Priorities", description: "Most vulnerable and valuable employees showing clear signs of leaving.", action: "ACT IMMEDIATELY with personalized retention plans, executive sponsorship, and succession planning.", color: "text-red-400", bgColor: "rgba(239, 68, 68, 0.7)" },
-    'HighImpact_LowRisk': { title: "Talent & Succession Risks", description: "Highly impactful, stable employees whose departure would be devastating.", action: "PROTECT AND PREPARE with succession planning, knowledge management, and proactive engagement.", color: "text-primary-400", bgColor: "rgba(59, 130, 246, 0.7)" },
-    'LowImpact_HighRisk': { title: "Manageable Turnover", description: "Employees likely to leave but with low overall impact; may be low performers.", action: "MANAGE AND MONITOR. For low performers, manage out gracefully. For others, conduct exit interviews.", color: "text-yellow-400", bgColor: "rgba(245, 158, 11, 0.7)" },
-    'LowImpact_LowRisk': { title: "Stable Contributors", description: "The backbone of the organization; reliable performers in non-critical roles.", action: "MAINTAIN AND APPRECIATE with general engagement, fair compensation, and a positive environment.", color: "text-green-400", bgColor: "rgba(34, 197, 94, 0.7)" },
+    'HighImpact_HighRisk': { title: "Critical Retention Priorities", description: "Most vulnerable and valuable employees showing clear signs of leaving.", action: "ACT IMMEDIATELY with personalized retention plans, executive sponsorship, and succession planning.", color: "text-red-600", bgColor: "rgba(239, 68, 68, 0.9)" },
+    'HighImpact_LowRisk': { title: "Talent & Succession Risks", description: "Highly impactful, stable employees whose departure would be devastating.", action: "PROTECT AND PREPARE with succession planning, knowledge management, and proactive engagement.", color: "text-blue-600", bgColor: "rgba(59, 130, 246, 0.9)" },
+    'LowImpact_HighRisk': { title: "Manageable Turnover", description: "Employees likely to leave but with low overall impact; may be low performers.", action: "MANAGE AND MONITOR. For low performers, manage out gracefully. For others, conduct exit interviews.", color: "text-yellow-600", bgColor: "rgba(245, 158, 11, 0.9)" },
+    'LowImpact_LowRisk': { title: "Stable Contributors", description: "The backbone of the organization; reliable performers in non-critical roles.", action: "MAINTAIN AND APPRECIATE with general engagement, fair compensation, and a positive environment.", color: "text-green-600", bgColor: "rgba(34, 197, 94, 0.9)" },
 };
 
 const getQuadrant = (flightScore: number, impactScore: number): QuadrantKey => {

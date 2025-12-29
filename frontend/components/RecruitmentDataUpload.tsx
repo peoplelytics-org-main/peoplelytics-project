@@ -5,6 +5,7 @@ import type { JobPosition, RecruitmentFunnel } from '../types';
 import Button from './ui/Button';
 import { CheckCircle, AlertTriangle, UploadCloud, X, Edit, Trash2 } from 'lucide-react';
 import Card, { CardContent, CardHeader, CardTitle } from './ui/Card';
+import { API_BASE_URL } from '@/services/api/baseApi';
 
 interface RecruitmentDataUploadProps {
   onComplete: (data: { positions: JobPosition[], funnels: RecruitmentFunnel[] }) => void;
@@ -29,6 +30,7 @@ const RecruitmentDataUpload: React.FC<RecruitmentDataUploadProps> = ({ onComplet
   const [isDragActive, setIsDragActive] = useState(false);
   const [isFixingManually, setIsFixingManually] = useState(false);
   const [rowsToFix, setRowsToFix] = useState<RowError[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const componentRef = useRef<HTMLDivElement>(null);
   
   const idSet = new Set<string>();
@@ -127,11 +129,100 @@ const RecruitmentDataUpload: React.FC<RecruitmentDataUploadProps> = ({ onComplet
     else if (e.type === "dragleave") setIsDragActive(false);
   }, []);
 
+   // NEW: Function to convert recruitment data to CSV format for backend
+   const convertToCSVFormat = (funnels: RecruitmentFunnel[]): string => {
+    const headers = ['positionId', 'shortlisted', 'interviewed', 'offersExtended', 'offersAccepted', 'joined', 'organizationId'];
+    const rows = funnels.map(f => [
+      f.positionId,
+      f.shortlisted,
+      f.interviewed,
+      f.offersExtended,
+      f.offersAccepted,
+      f.joined,
+      f.organizationId
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    return csvContent;
+  };
+
+  // NEW: Function to upload data to backend
+  const uploadToBackend = async (dataToUpload: { positions: JobPosition[], funnels: RecruitmentFunnel[] }) => {
+    setIsUploading(true);
+    setStep('uploading');
+    
+    try {
+      // Create CSV content from funnels data
+      const csvContent = convertToCSVFormat(dataToUpload.funnels);
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const file = new File([blob], 'recruitment_funnels.csv', { type: 'text/csv' });
+      
+      // Create FormData
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      console.log('Uploading recruitment funnels to backend...');
+      console.log('Data being sent:', dataToUpload.funnels);
+      
+      // Make API call
+      const response = await fetch(API_BASE_URL+"/upload/recruitment-funnels", {
+        method: 'POST',
+        body: formData,
+        credentials: 'include', // Important for cookie-based auth
+      });
+      
+      const result = await response.json();
+      console.log('Backend response:', result);
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Upload failed');
+      }
+      
+      // Success!
+      setUploadSummary({ 
+        uploaded: result.data?.created || dataToUpload.positions.length, 
+        skipped: result.data?.failed || errorRows.length 
+      });
+      setStep('complete');
+      
+      // Notify parent component
+      onComplete(dataToUpload);
+      
+      addNotification({ 
+        title: 'Upload Successful', 
+        message: `Successfully uploaded ${result.data?.created || dataToUpload.positions.length} recruitment records to database.`, 
+        type: 'success' 
+      });
+      
+      // Show any backend errors if present
+      if (result.data?.errors && result.data.errors.length > 0) {
+        console.warn('Backend validation errors:', result.data.errors);
+        addNotification({
+          title: 'Some Records Had Issues',
+          message: `${result.data.failed} records failed validation. Check console for details.`,
+          type: 'warning'
+        });
+      }
+      
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      addNotification({ 
+        title: 'Upload Failed', 
+        message: error.message || 'Failed to upload data to server', 
+        type: 'error' 
+      });
+      setStep('validate'); // Go back to validation step
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleUpload = () => {
-    onComplete(validData);
-    setUploadSummary({ uploaded: validData.positions.length, skipped: errorRows.length });
-    setStep('complete');
-    addNotification({ title: 'Upload Successful', message: `Successfully loaded ${validData.positions.length} recruitment records.`, type: 'success' });
+    uploadToBackend(validData);
   };
   
   const handleManualFixChange = (rowIndex: number, field: string, value: string) => {

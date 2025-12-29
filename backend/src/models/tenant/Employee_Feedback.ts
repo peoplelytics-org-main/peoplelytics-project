@@ -16,13 +16,19 @@ export const EmployeeFeedbackSchema = new Schema<IEmployeeFeedback>({
     satisId: {
       type: String,
       required: true,
-      unique: true,
       index: true
     },
   employeeId: {
     type: String,
     ref:"employees",
     required: true,
+    index: true
+  },
+  engagementScore: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 100,
     index: true
   },
   compensationSatisfaction:{
@@ -49,6 +55,10 @@ export const EmployeeFeedbackSchema = new Schema<IEmployeeFeedback>({
   
 }, {
   timestamps: true,
-  collection: 'employees'
+  collection: 'employee_feedback'
 });
+
+// Indexes for better query performance
+EmployeeFeedbackSchema.index({ employeeId: 1, createdAt: -1 });
+EmployeeFeedbackSchema.index({ engagementScore: 1 });
 

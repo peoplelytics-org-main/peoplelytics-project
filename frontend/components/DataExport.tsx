@@ -5,10 +5,8 @@ import Button from './ui/Button';
 import Card, { CardHeader, CardTitle, CardDescription, CardContent } from './ui/Card';
 import { FileDown } from 'lucide-react';
 import { calculateFlightRiskScore, calculateImpactScore } from '../services/calculations';
-import { MOCK_JOB_POSITIONS, MOCK_RECRUITMENT_FUNNEL_DATA } from '../constants/data';
-
 const DataExport: React.FC = () => {
-    const { employeeData, attendanceData } = useData();
+    const { employeeData, attendanceData, jobPositions, recruitmentFunnels } = useData();
 
     // --- Data Preparation for Excel Export ---
     const employeeSheetData = employeeData.map(emp => ({
@@ -62,11 +60,20 @@ const DataExport: React.FC = () => {
             : []
     );
 
-    const attendanceSheetData = attendanceData.map(att => ({
-        employeeId: att.employeeId,
-        date: att.date,
-        status: att.status,
-    }));
+    const attendanceSheetData = attendanceData.map(att => {
+        let formattedDate = att.date;
+        if (att.date instanceof Date) {
+            formattedDate = att.date.toISOString().split('T')[0];
+        } else if (typeof att.date === 'string') {
+            // Handle ISO string format or YYYY-MM-DD format
+            formattedDate = att.date.split('T')[0].split(' ')[0];
+        }
+        return {
+            employeeId: att.employeeId,
+            date: formattedDate,
+            status: att.status,
+        };
+    });
     
     const handleDownloadExcel = () => {
         const wb = XLSX.utils.book_new();
@@ -111,27 +118,34 @@ const DataExport: React.FC = () => {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(performanceSheetData), "Performance & Engagement");
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(skillsSheetData), "Skills Data");
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(attendanceSheetData), "Attendance Log");
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(MOCK_JOB_POSITIONS), "Job Positions");
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(MOCK_RECRUITMENT_FUNNEL_DATA), "Recruitment Funnel");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(jobPositions), "Job Positions");
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(recruitmentFunnels), "Recruitment Funnel");
 
 
         XLSX.writeFile(wb, "peoplelytics_data_export_all.xlsx");
     };
 
     const downloadCSV = (data: any[], filename: string) => {
-        if (data.length === 0) return;
-        const ws = XLSX.utils.json_to_sheet(data);
-        const csvString = XLSX.utils.sheet_to_csv(ws);
-        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        if (!data || data.length === 0) {
+            console.warn(`No data available for ${filename}`);
+            return;
+        }
+        try {
+            const ws = XLSX.utils.json_to_sheet(data);
+            const csvString = XLSX.utils.sheet_to_csv(ws);
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error(`Error downloading ${filename}:`, error);
+        }
     };
     
     return (
@@ -158,8 +172,8 @@ const DataExport: React.FC = () => {
                         <Button variant="secondary" size="sm" onClick={() => downloadCSV(performanceSheetData, 'performance_data.csv')} disabled={employeeData.length === 0}>Performance</Button>
                         <Button variant="secondary" size="sm" onClick={() => downloadCSV(skillsSheetData, 'skills_data.csv')} disabled={employeeData.length === 0}>Skills Data</Button>
                         <Button variant="secondary" size="sm" onClick={() => downloadCSV(attendanceSheetData, 'attendance_data.csv')} disabled={attendanceData.length === 0}>Attendance</Button>
-                        <Button variant="secondary" size="sm" onClick={() => downloadCSV(MOCK_JOB_POSITIONS, 'job_positions.csv')}>Job Positions</Button>
-                        <Button variant="secondary" size="sm" onClick={() => downloadCSV(MOCK_RECRUITMENT_FUNNEL_DATA, 'recruitment_funnel.csv')}>Recruitment Funnel</Button>
+                        <Button variant="secondary" size="sm" onClick={() => downloadCSV(jobPositions, 'job_positions.csv')} disabled={jobPositions.length === 0}>Job Positions</Button>
+                        <Button variant="secondary" size="sm" onClick={() => downloadCSV(recruitmentFunnels, 'recruitment_funnel.csv')} disabled={recruitmentFunnels.length === 0}>Recruitment Funnel</Button>
                     </div>
                 </div>
 

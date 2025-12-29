@@ -4,8 +4,9 @@ import { useData } from '../contexts/DataContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import type { AttendanceRecord } from '../types';
 import Button from './ui/Button';
-import { CheckCircle, AlertTriangle, UploadCloud, X, Edit, Trash2 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, UploadCloud, X, Edit, Trash2, Loader2 } from 'lucide-react';
 import Card, { CardContent, CardHeader, CardTitle } from './ui/Card';
+import { uploadApi } from '../services/api/uploadApi';
 
 interface AttendanceUploadProps {
   onComplete: (data: AttendanceRecord[]) => void;
@@ -64,7 +65,7 @@ const smartParseDate = (dateInput: any): string | null => {
 
 
 const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organizationId }) => {
-  const { employeeData } = useData();
+  const { employeeData, refreshAttendanceData } = useData();
   const { addNotification } = useNotifications();
 
   const [step, setStep] = useState<'select' | 'validate' | 'complete'>('select');
@@ -75,6 +76,8 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
   const [isDragActive, setIsDragActive] = useState(false);
   const [isFixingManually, setIsFixingManually] = useState(false);
   const [rowsToFix, setRowsToFix] = useState<RowError[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const componentRef = useRef<HTMLDivElement>(null);
 
   const employeeIdSet = useMemo(() => new Set(employeeData.map(e => e.id)), [employeeData]);
@@ -110,6 +113,7 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
 
   const processFile = useCallback((file: File) => {
     setFileName(file.name);
+    setUploadedFile(file);
     Papa.parse<Record<string, any>>(file, {
       header: true, skipEmptyLines: true,
       complete: (results) => {
@@ -153,11 +157,45 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
     else if (e.type === "dragleave") setIsDragActive(false);
   }, []);
 
-  const handleUpload = () => {
-    onComplete(validRows);
-    setUploadSummary({ uploaded: validRows.length, skipped: errorRows.length });
-    setStep('complete');
-    addNotification({ title: 'Upload Successful', message: `Successfully loaded ${validRows.length} attendance records.`, type: 'success' });
+  const handleUpload = async () => {
+    if (!uploadedFile) {
+      addNotification({
+        title: 'Error',
+        message: 'No file to upload',
+        type: 'error',
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const response = await uploadApi.uploadAttendance(uploadedFile);
+      if (response.success && response.data) {
+        const { created, failed } = response.data;
+        setUploadSummary({ uploaded: created, skipped: failed });
+        setStep('complete');
+        addNotification({
+          title: 'Upload Successful',
+          message: `Successfully uploaded ${created} attendance records. ${failed > 0 ? `${failed} failed.` : ''}`,
+          type: 'success',
+        });
+        await refreshAttendanceData();
+      } else {
+        addNotification({
+          title: 'Upload Failed',
+          message: response.error || 'Failed to upload attendance',
+          type: 'error',
+        });
+      }
+    } catch (error: any) {
+      addNotification({
+        title: 'Upload Error',
+        message: error.message || 'An error occurred during upload',
+        type: 'error',
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
   
   const handleManualFixChange = (rowIndex: number, field: string, value: string) => {
@@ -168,7 +206,7 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
     setRowsToFix(prev => prev.filter(row => row.rowIndex !== rowIndex));
   };
 
-  const handleFinalizeManualFix = () => {
+  const handleFinalizeManualFix = async () => {
     const stillErrored: RowError[] = []; const newlyValid: AttendanceRecord[] = [];
     rowsToFix.forEach(row => {
         const validationErrors = validateAttendanceRow(row.rowData);
@@ -188,12 +226,56 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
         setRowsToFix(stillErrored);
         addNotification({ title: 'Validation Failed', message: `${stillErrored.length} rows still have errors.`, type: 'error' });
     } else {
+        // Upload to backend
         const finalData = [...validRows, ...newlyValid];
-        onComplete(finalData);
-        setUploadSummary({ uploaded: finalData.length, skipped: errorRows.length - newlyValid.length });
-        setStep('complete');
-        setIsFixingManually(false);
-        addNotification({ title: 'Upload Successful', message: `Loaded ${validRows.length} original and ${newlyValid.length} fixed records.`, type: 'success' });
+        if (!uploadedFile) {
+          addNotification({
+            title: 'Error',
+            message: 'No file to upload',
+            type: 'error',
+          });
+          return;
+        }
+
+        // Create CSV with final data
+        const csvContent = Papa.unparse(finalData.map(row => ({
+          employeeId: row.employeeId,
+          date: row.date,
+          status: row.status,
+        })));
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const newFile = new File([blob], uploadedFile.name, { type: 'text/csv' });
+
+        setIsUploading(true);
+        try {
+          const response = await uploadApi.uploadAttendance(newFile);
+          if (response.success && response.data) {
+            const { created, failed } = response.data;
+            setUploadSummary({ uploaded: created, skipped: errorRows.length - newlyValid.length });
+            setStep('complete');
+            setIsFixingManually(false);
+            addNotification({
+              title: 'Upload Successful',
+              message: `Uploaded ${created} records (${validRows.length} original + ${newlyValid.length} fixed).`,
+              type: 'success',
+            });
+            await refreshAttendanceData();
+          } else {
+            addNotification({
+              title: 'Upload Failed',
+              message: response.error || 'Failed to upload attendance',
+              type: 'error',
+            });
+          }
+        } catch (error: any) {
+          addNotification({
+            title: 'Upload Error',
+            message: error.message || 'An error occurred during upload',
+            type: 'error',
+          });
+        } finally {
+          setIsUploading(false);
+        }
     }
   };
 
@@ -240,7 +322,16 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
                 </CardContent>
                 <div className="p-4 flex-shrink-0 border-t border-border flex justify-end gap-2">
                     <Button variant="secondary" onClick={() => setIsFixingManually(false)}>Cancel</Button>
-                    <Button onClick={handleFinalizeManualFix}>Finish & Upload ({rowsToFix.length} left)</Button>
+                    <Button onClick={handleFinalizeManualFix} disabled={isUploading}>
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        `Finish & Upload (${rowsToFix.length} left)`
+                      )}
+                    </Button>
                 </div>
             </Card>
         </div>
@@ -269,8 +360,19 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
               {errorRows.length > 10 && <p className="text-text-secondary mt-2">...and {errorRows.length - 10} more errors.</p>}
             </div>
             <div className="flex flex-wrap gap-2 mt-4">
-                <Button onClick={handleUpload}>Upload Valid & Skip Errors</Button>
-                <Button onClick={() => { setRowsToFix(errorRows); setIsFixingManually(true); }} variant="secondary" className="gap-2"><Edit className="h-4 w-4"/>Manual Fix</Button>
+                <Button onClick={handleUpload} disabled={isUploading}>
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    'Upload Valid & Skip Errors'
+                  )}
+                </Button>
+                <Button onClick={() => { setRowsToFix(errorRows); setIsFixingManually(true); }} variant="secondary" className="gap-2" disabled={isUploading}>
+                  <Edit className="h-4 w-4"/>Manual Fix
+                </Button>
                 <Button onClick={resetState} variant="ghost">Cancel</Button>
             </div>
           </div>
@@ -279,7 +381,19 @@ const AttendanceUpload: React.FC<AttendanceUploadProps> = ({ onComplete, organiz
             <div className="flex items-center gap-2 p-3 bg-green-900/50 rounded-md text-green-300">
               <CheckCircle className="h-5 w-5" /><p className="text-sm font-semibold">All {validRows.length} rows are valid.</p>
             </div>
-            <div className="flex gap-2 mt-4"><Button onClick={handleUpload}>Upload Data</Button><Button onClick={resetState} variant="ghost">Cancel</Button></div>
+            <div className="flex gap-2 mt-4">
+              <Button onClick={handleUpload} disabled={isUploading}>
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  'Upload Data'
+                )}
+              </Button>
+              <Button onClick={resetState} variant="ghost" disabled={isUploading}>Cancel</Button>
+            </div>
           </div>
         )}
     </div>

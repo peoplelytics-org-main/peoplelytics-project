@@ -3,17 +3,50 @@ import { getEmployeeFlightRisk } from './turnover';
 
 export type SkillMatrixData = Record<string, Record<SkillLevel | 'total', Employee[]>>;
 
+
+
 export const getSkillMatrix = (employees: Employee[]): SkillMatrixData => {
     const matrix: SkillMatrixData = {};
+    const uniqueLevels = new Set<string>();
+    
     employees.filter(e => !e.terminationDate).forEach(emp => {
+        if (!emp.skills || !Array.isArray(emp.skills)) {
+            return;
+        }
+        
         emp.skills.forEach(skill => {
-            if (!matrix[skill.name]) {
-                matrix[skill.name] = { Novice: [], Beginner: [], Competent: [], Proficient: [], Expert: [], total: [] };
+            if (!skill || !skill.name || !skill.level) {
+                return;
             }
-            matrix[skill.name][skill.level].push(emp);
+            
+            uniqueLevels.add(skill.level);
+            
+            if (!matrix[skill.name]) {
+                matrix[skill.name] = { 
+                    Novice: [], 
+                    Beginner: [], 
+                    Competent: [], 
+                    Proficient: [], 
+                    Expert: [], 
+                    total: [] 
+                };
+            }
+            
+            // Check if level exists in matrix before pushing
+            if (!matrix[skill.name][skill.level]) {
+                console.error(`❌ Unknown skill level: "${skill.level}" for skill: "${skill.name}" (Employee: ${emp.name})`);
+                // Default to Competent
+                matrix[skill.name].Competent.push(emp);
+            } else {
+                matrix[skill.name][skill.level].push(emp);
+            }
+            
             matrix[skill.name].total.push(emp);
         });
     });
+    
+    console.log('📊 Unique skill levels found:', Array.from(uniqueLevels));
+    
     return matrix;
 };
 

@@ -5,8 +5,7 @@ import Button from '../ui/Button';
 import MarkdownRenderer from '../ui/MarkdownRenderer';
 import { getAIAssistance } from '../../services/geminiService';
 import type { CalculatorConfig } from './calculatorConfig';
-import { useTheme } from '../../contexts/ThemeContext';
-import type { Currency } from '../../types';
+import { useCurrency } from '../../hooks/useCurrency';
 
 const CalculatorCard: React.FC<CalculatorConfig> = ({
   title,
@@ -25,7 +24,7 @@ const CalculatorCard: React.FC<CalculatorConfig> = ({
   const [result, setResult] = useState<number | null>(null);
   const [aiInsight, setAiInsight] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { currency } = useTheme();
+  const { format, symbol } = useCurrency();
 
   const canInitiallyCalculate = useMemo(() => {
     return inputs.every(input => input.defaultValue && input.defaultValue.trim() !== '' && !isNaN(Number(input.defaultValue)));
@@ -76,19 +75,12 @@ const CalculatorCard: React.FC<CalculatorConfig> = ({
     })
   }, [inputValues, inputs]);
 
-  const currencySymbols: Record<Currency, string> = {
-      PKR: 'Rs',
-      USD: '$',
-      EUR: '€',
-      GBP: '£',
-  };
-
   const formatResult = (res: number): string => {
       if (res === null || res === undefined) return '';
 
       switch (resultType) {
           case 'currency':
-              return `${currencySymbols[currency]}${res.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+              return format(res);
           case 'percent':
               if (!isFinite(res)) return 'N/A (from 0 start)';
               return `${res.toFixed(2)}%`;
@@ -128,7 +120,7 @@ const CalculatorCard: React.FC<CalculatorConfig> = ({
                 <Input
                     key={input.id}
                     id={input.id}
-                    label={input.label.replace('($)', `(${currencySymbols[currency]})`)}
+                    label={input.label.replace('($)', `(${symbol})`)}
                     type={input.type}
                     value={inputValues[input.id]}
                     onChange={e => handleInputChange(input.id, e.target.value)}

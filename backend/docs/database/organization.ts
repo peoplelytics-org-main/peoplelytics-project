@@ -1,17 +1,17 @@
 import mongoose from 'mongoose';
 import { getOrgConnection } from './orgConnection';
-import { AttendanceSchema } from '@/models/tenant/Attendance';
-import { EmployeeSchema } from '@/models/tenant/Employee';
-import { SkillsSchema } from '@/models/tenant/Skills';
-import { JobPositionsSchema } from '@/models/tenant/JobPositions';
-import { RecruitmentFunnelsSchema } from '@/models/tenant/RecruitmentFunnels';
-import { ExitInterviewsSchema } from '@/models/tenant/ExitInterviews';
-import { PerformanceAndEngagementSchema } from '@/models/tenant/PerformanceReviews';
-import { DepartmentsSchema } from '@/models/tenant/Departments';
-import { ReportsSchema } from '@/models/tenant/Reports';
-import { AnalyticsSchema } from '@/models/tenant/Analytics';
-import { SalaryAndCompensationSchema } from '@/models/tenant/Salary';
-import { EmployeeFeedbackSchema } from '@/models/tenant/Employee_Feedback';
+import { AttendanceSchema } from '../../src/models/tenant/Attendance';
+import { EmployeeSchema } from '../../src/models/tenant/Employee';
+import { SkillsSchema } from '../../src/models/tenant/Skills';
+import { JobPositionsSchema } from '../../src/models/tenant/JobPositions';
+import { RecruitmentFunnelsSchema } from '../../src/models/tenant/RecruitmentFunnels';
+import { ExitInterviewsSchema } from '../../src/models/tenant/ExitInterviews';
+import { PerformanceAndEngagementSchema } from '../../src/models/tenant/PerformanceReviews';
+import { DepartmentsSchema } from '../../src/models/tenant/Departments';
+import { ReportsSchema } from '../../src/models/tenant/Reports';
+import { AnalyticsSchema } from '../../src/models/tenant/Analytics';
+import { SalaryAndCompensationSchema } from '../../src/models/tenant/Salary';
+import { EmployeeFeedbackSchema } from '../../src/models/tenant/Employee_Feedback';
 
 // Define schemas once
 const userSchema = new mongoose.Schema({

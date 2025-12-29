@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Organization } from '../models/shared/Organization'
 import { DatabaseService } from "../services/tenant/databaseService";
 import { logger } from '../utils/helpers/logger';
+import mongoose from 'mongoose';
 
 const dbService = DatabaseService.getInstance();
 
@@ -21,7 +22,7 @@ export const addOrganization = async (orgData: any) => {
   .replace(/\s+/g, '-')     // Replace one or more spaces with a single hyphen
   .replace(/[^a-z0-9-]/g, '');
 
-  const orgId = `org_${orgSlug}${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  const orgId = `org_${orgSlug}`;
 
   // Set default start and end dates
   const startDate = orgData.subscriptionStartDate
@@ -44,7 +45,7 @@ export const addOrganization = async (orgData: any) => {
     subscriptionEndDate: endDate,
     status: orgData.status || "Active",
     package: orgData.package || "Basic",
-    employeeCount: orgData.employeeCount || 0,
+    quota: orgData.quota || 0,
   });
 
   console.log(`✅ Organization "${newOrg.name}" added successfully`);
@@ -116,13 +117,59 @@ export const getOrganizationById = async (req: Request, res: Response): Promise<
   }
 };
 
+export const searchOrganizations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { query } = req.query; // Get search term from query params (e.g., ?query=f)
+
+    // If query is empty, return empty array
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      res.status(200).json({
+        success: true,
+        data: []
+      });
+      return;
+    }
+
+    // Sanitize query - escape special regex characters
+    const sanitizedQuery = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Perform semantic search: organizations starting with the query (case-insensitive)
+    // Primary search on organization name (exact name created by Super Admin)
+    // Secondary search on orgId as fallback
+    // Using ^ to match strings that START WITH the query
+    const organizations = await Organization.find({
+      $or: [
+        { name: { $regex: `^${sanitizedQuery}`, $options: 'i' } }, // Starts with query (primary)
+        { orgId: { $regex: `^${sanitizedQuery}`, $options: 'i' } } // Starts with query (fallback)
+      ],
+      status: 'Active' // Only show active organizations
+    })
+    .select('orgId name')
+    .sort({ name: 1 }) // Sort alphabetically by name
+    .limit(10); // Increased limit for better UX
+
+    res.status(200).json({
+      success: true,
+      data: organizations
+    });
+
+  } catch (error) {
+    logger.error('Error searching organizations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to search organizations',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+};
+
 /**
  * Update organization
  */
 export const updateOrganization = async (req: Request, res: Response): Promise<void> => {
   try {
     const { orgId } = req.params;
-    const { name, subscriptionStartDate, subscriptionEndDate, status, package: pkg, employeeCount, settings, features } = req.body;
+    const { name, subscriptionStartDate, subscriptionEndDate, status, package: pkg, quota, settings, features } = req.body;
 
     const updateData: any = {};
     
@@ -146,7 +193,7 @@ export const updateOrganization = async (req: Request, res: Response): Promise<v
     if (subscriptionEndDate !== undefined) updateData.subscriptionEndDate = new Date(subscriptionEndDate);
     if (status !== undefined) updateData.status = status;
     if (pkg !== undefined) updateData.package = pkg;
-    if (employeeCount !== undefined) updateData.employeeCount = employeeCount;
+    if (quota !== undefined) updateData.quota = quota;
     if (settings !== undefined) updateData.settings = settings;
     if (features !== undefined) updateData.features = features;
 

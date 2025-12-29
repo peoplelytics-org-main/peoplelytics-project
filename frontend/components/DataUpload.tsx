@@ -3,13 +3,15 @@ import Papa from 'papaparse';
 import type { Employee, Skill, SkillLevel } from '../types';
 import Button from './ui/Button';
 import { useNotifications } from '../contexts/NotificationContext';
-import { CheckCircle, AlertTriangle, UploadCloud, X, Edit, Trash2 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, UploadCloud, X, Edit, Trash2, Loader2 } from 'lucide-react';
 import Card, { CardContent, CardHeader, CardTitle } from './ui/Card';
 import { useData } from '../contexts/DataContext';
+import { uploadApi } from '../services/api/uploadApi';
 
 interface DataUploadProps {
   onComplete: (data: Employee[]) => void;
   organizationId: string;
+  existingEmployeeIds?: Set<string>;
 }
 
 type RowError = { field: string; message: string };
@@ -17,7 +19,7 @@ type ErrorRow = { rowIndex: number; errors: RowError[]; rowData: Record<string, 
 
 const REQUIRED_FIELDS = ['id', 'name', 'department', 'jobTitle', 'hireDate', 'salary', 'gender', 'performanceRating', 'engagementScore'];
 
-const validateRow = (row: Record<string, any>, index: number, allIds: Set<string>): RowError[] => {
+const validateRow = (row: Record<string, any>, index: number, allIds: Set<string>,existingIds?: Set<string>): RowError[] => {
     const errors: RowError[] = [];
     
     REQUIRED_FIELDS.forEach(field => {
@@ -65,7 +67,7 @@ const parseSkills = (skillsString: string): Skill[] => {
 
 const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) => {
     const { addNotification } = useNotifications();
-    const { currentOrgHeadcount, currentOrgHeadcountLimit } = useData();
+    const { currentOrgHeadcount, currentOrgHeadcountLimit, refreshEmployeeData } = useData();
     const [step, setStep] = useState<'select' | 'validate' | 'complete'>('select');
     const [fileName, setFileName] = useState<string | null>(null);
     const [errorRows, setErrorRows] = useState<ErrorRow[]>([]);
@@ -74,6 +76,8 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
     const [isDragActive, setIsDragActive] = useState(false);
     const [isFixingManually, setIsFixingManually] = useState(false);
     const [rowsToFix, setRowsToFix] = useState<ErrorRow[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const componentRef = useRef<HTMLDivElement>(null);
     
     const allFileHeaders = useMemo(() => {
@@ -170,6 +174,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
 
     const processFile = useCallback((file: File) => {
         setFileName(file.name);
+        setUploadedFile(file);
         Papa.parse<Record<string, any>>(file, {
             header: true,
             skipEmptyLines: true,
@@ -247,40 +252,148 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
         }
     }, []);
     
-    const handleUpload = () => {
-        onComplete(validRows);
-        setUploadSummary({ uploaded: validRows.length, skipped: 0, fixed: 0 });
-        setStep('complete');
-        addNotification({
-            title: 'Upload Successful',
-            message: `Successfully loaded ${validRows.length} employee records.`,
-            type: 'success',
-        });
+    const handleUpload = async () => {
+        if (!uploadedFile) {
+            addNotification({
+                title: 'Error',
+                message: 'No file to upload',
+                type: 'error',
+            });
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const response = await uploadApi.uploadEmployees(uploadedFile);
+            if (response.success && response.data) {
+                const { created, failed, errors } = response.data;
+                setUploadSummary({ uploaded: created, skipped: failed, fixed: 0 });
+                setStep('complete');
+                addNotification({
+                    title: 'Upload Successful',
+                    message: `Successfully uploaded ${created} employee records. ${failed > 0 ? `${failed} failed.` : ''}`,
+                    type: 'success',
+                });
+                // Refresh employee data
+                await refreshEmployeeData();
+                if (onComplete) {
+                    onComplete([]); // Trigger callback if needed
+                }
+            } else {
+                addNotification({
+                    title: 'Upload Failed',
+                    message: response.error || 'Failed to upload employees',
+                    type: 'error',
+                });
+            }
+        } catch (error: any) {
+            addNotification({
+                title: 'Upload Error',
+                message: error.message || 'An error occurred during upload',
+                type: 'error',
+            });
+        } finally {
+            setIsUploading(false);
+        }
     };
     
-    const handleAutoFixAndUpload = () => {
-        const fixedRows = errorRows.map(errRow => cleanRow(errRow.rowData));
-        const finalData = [...validRows, ...fixedRows];
-        onComplete(finalData);
-        setUploadSummary({ uploaded: finalData.length, skipped: 0, fixed: errorRows.length });
-        setStep('complete');
-        addNotification({
-            title: 'Upload Successful',
-            message: `Loaded ${validRows.length} valid records and auto-fixed ${errorRows.length} records.`,
-            type: 'success',
-        });
+    const handleAutoFixAndUpload = async () => {
+        // For auto-fix, we still need to upload the file
+        // The backend will handle validation
+        if (!uploadedFile) {
+            addNotification({
+                title: 'Error',
+                message: 'No file to upload',
+                type: 'error',
+            });
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const response = await uploadApi.uploadEmployees(uploadedFile);
+            if (response.success && response.data) {
+                const { created, failed, errors } = response.data;
+                setUploadSummary({ uploaded: created, skipped: failed, fixed: errorRows.length });
+                setStep('complete');
+                addNotification({
+                    title: 'Upload Successful',
+                    message: `Uploaded ${created} records. ${failed > 0 ? `${failed} failed.` : ''}`,
+                    type: 'success',
+                });
+                await refreshEmployeeData();
+            } else {
+                addNotification({
+                    title: 'Upload Failed',
+                    message: response.error || 'Failed to upload employees',
+                    type: 'error',
+                });
+            }
+        } catch (error: any) {
+            addNotification({
+                title: 'Upload Error',
+                message: error.message || 'An error occurred during upload',
+                type: 'error',
+            });
+        } finally {
+            setIsUploading(false);
+        }
     };
     
-    const handleSkipAndUpload = () => {
-        onComplete(validRows);
-        const skippedCount = errorRows.length;
-        setUploadSummary({ uploaded: validRows.length, skipped: skippedCount, fixed: 0 });
-        setStep('complete');
-        addNotification({
-            title: 'Upload Partially Successful',
-            message: `Loaded ${validRows.length} valid records. ${skippedCount} rows with errors were skipped.`,
-            type: 'warning',
-        });
+    const handleSkipAndUpload = async () => {
+        // Upload only valid rows - create a new CSV with only valid data
+        if (!uploadedFile || validRows.length === 0) {
+            addNotification({
+                title: 'Error',
+                message: 'No valid data to upload',
+                type: 'error',
+            });
+            return;
+        }
+
+        // Create a new CSV with only valid rows
+        const csvContent = Papa.unparse(validRows.map(row => ({
+            employeeId: row.id,
+            name: row.name,
+            department: row.department,
+            jobTitle: row.jobTitle,
+            location: row.location,
+            hireDate: row.hireDate,
+            gender: row.gender,
+        })));
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const newFile = new File([blob], uploadedFile.name, { type: 'text/csv' });
+
+        setIsUploading(true);
+        try {
+            const response = await uploadApi.uploadEmployees(newFile);
+            if (response.success && response.data) {
+                const { created, failed } = response.data;
+                const skippedCount = errorRows.length;
+                setUploadSummary({ uploaded: created, skipped: skippedCount, fixed: 0 });
+                setStep('complete');
+                addNotification({
+                    title: 'Upload Partially Successful',
+                    message: `Uploaded ${created} valid records. ${skippedCount} rows with errors were skipped.`,
+                    type: 'warning',
+                });
+                await refreshEmployeeData();
+            } else {
+                addNotification({
+                    title: 'Upload Failed',
+                    message: response.error || 'Failed to upload employees',
+                    type: 'error',
+                });
+            }
+        } catch (error: any) {
+            addNotification({
+                title: 'Upload Error',
+                message: error.message || 'An error occurred during upload',
+                type: 'error',
+            });
+        } finally {
+            setIsUploading(false);
+        }
     };
     
     const handleManualFixChange = (rowIndex: number, field: string, value: string) => {
@@ -295,7 +408,7 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
         setRowsToFix(prev => prev.filter(row => row.rowIndex !== rowIndex));
     };
 
-    const handleFinalizeManualFix = () => {
+    const handleFinalizeManualFix = async () => {
         const stillErrored: ErrorRow[] = [];
         const newlyValid: Employee[] = [];
         const allIds: Set<string> = new Set(validRows.map(r => r.id));
@@ -317,16 +430,60 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
                 type: 'error',
             });
         } else {
+            // Upload to backend
             const finalData = [...validRows, ...newlyValid];
-            onComplete(finalData);
-            setUploadSummary({ uploaded: finalData.length, skipped: errorRows.length - newlyValid.length, fixed: newlyValid.length });
-            setStep('complete');
-            setIsFixingManually(false);
-            addNotification({
-                title: 'Upload Successful',
-                message: `Successfully loaded ${validRows.length} original and ${newlyValid.length} manually fixed records.`,
-                type: 'success',
-            });
+            if (!uploadedFile) {
+                addNotification({
+                    title: 'Error',
+                    message: 'No file to upload',
+                    type: 'error',
+                });
+                return;
+            }
+
+            // Create CSV with final data
+            const csvContent = Papa.unparse(finalData.map(row => ({
+                employeeId: row.id,
+                name: row.name,
+                department: row.department,
+                jobTitle: row.jobTitle,
+                location: row.location,
+                hireDate: row.hireDate,
+                gender: row.gender,
+            })));
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const newFile = new File([blob], uploadedFile.name, { type: 'text/csv' });
+
+            setIsUploading(true);
+            try {
+                const response = await uploadApi.uploadEmployees(newFile);
+                if (response.success && response.data) {
+                    const { created, failed } = response.data;
+                    setUploadSummary({ uploaded: created, skipped: errorRows.length - newlyValid.length, fixed: newlyValid.length });
+                    setStep('complete');
+                    setIsFixingManually(false);
+                    addNotification({
+                        title: 'Upload Successful',
+                        message: `Uploaded ${created} records (${validRows.length} original + ${newlyValid.length} fixed).`,
+                        type: 'success',
+                    });
+                    await refreshEmployeeData();
+                } else {
+                    addNotification({
+                        title: 'Upload Failed',
+                        message: response.error || 'Failed to upload employees',
+                        type: 'error',
+                    });
+                }
+            } catch (error: any) {
+                addNotification({
+                    title: 'Upload Error',
+                    message: error.message || 'An error occurred during upload',
+                    type: 'error',
+                });
+            } finally {
+                setIsUploading(false);
+            }
         }
     };
 
@@ -368,7 +525,16 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
                     </CardContent>
                     <div className="p-4 flex-shrink-0 border-t border-border flex justify-end gap-2">
                          <Button variant="secondary" onClick={() => setIsFixingManually(false)}>Cancel</Button>
-                         <Button onClick={handleFinalizeManualFix}>Finish & Upload ({rowsToFix.length} remaining)</Button>
+                         <Button onClick={handleFinalizeManualFix} disabled={isUploading}>
+                            {isUploading ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Uploading...
+                                </>
+                            ) : (
+                                `Finish & Upload (${rowsToFix.length} remaining)`
+                            )}
+                        </Button>
                     </div>
                 </Card>
             </div>
@@ -412,9 +578,22 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
                         </div>
                         <p className="text-xs text-text-secondary mt-3">You can attempt to auto-fix these issues, fix them manually, skip the rows with errors, or cancel and upload a corrected file.</p>
                         <div className="flex flex-wrap gap-2 mt-4">
-                            <Button onClick={handleAutoFixAndUpload}>Auto-Fix & Upload</Button>
-                            <Button onClick={() => { setRowsToFix(errorRows); setIsFixingManually(true); }} variant="secondary" className="gap-2"><Edit className="h-4 w-4"/>Manual Fix</Button>
-                            <Button onClick={handleSkipAndUpload} variant="secondary">Skip Errors & Upload Valid</Button>
+                            <Button onClick={handleAutoFixAndUpload} disabled={isUploading}>
+                                {isUploading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Uploading...
+                                    </>
+                                ) : (
+                                    'Auto-Fix & Upload'
+                                )}
+                            </Button>
+                            <Button onClick={() => { setRowsToFix(errorRows); setIsFixingManually(true); }} variant="secondary" className="gap-2" disabled={isUploading}>
+                                <Edit className="h-4 w-4"/>Manual Fix
+                            </Button>
+                            <Button onClick={handleSkipAndUpload} variant="secondary" disabled={isUploading}>
+                                {isUploading ? 'Uploading...' : 'Skip Errors & Upload Valid'}
+                            </Button>
                             <Button onClick={resetState} variant="ghost">Cancel</Button>
                         </div>
                     </div>
@@ -425,7 +604,16 @@ const DataUpload: React.FC<DataUploadProps> = ({ onComplete, organizationId }) =
                             <p className="text-sm font-semibold">All {validRows.length} rows are valid and ready to be uploaded.</p>
                         </div>
                         <div className="flex gap-2 mt-4">
-                            <Button onClick={handleUpload}>Upload Data</Button>
+                            <Button onClick={handleUpload} disabled={isUploading}>
+                                {isUploading ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Uploading...
+                                    </>
+                                ) : (
+                                    'Upload Data'
+                                )}
+                            </Button>
                             <Button onClick={resetState} variant="ghost">Cancel</Button>
                         </div>
                     </div>

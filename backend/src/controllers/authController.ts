@@ -6,6 +6,9 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { User, IUser } from "../models/shared/User"; // Import your TS model
 
+import { DatabaseService } from "../services/tenant/databaseService";
+
+const dbService = DatabaseService.getInstance();
 /**
  * Generates a JWT for a given user.
  */
@@ -22,15 +25,12 @@ const generateToken = (user: IUser) => {
   };
 
   const secret = process.env.JWT_SECRET;
-  const options = {
-    expiresIn: "7d",
-  };
 
   if (!secret) {
     throw new Error("JWT_SECRET is not defined in environment variables.");
   }
 
-  return jwt.sign(payload, secret, options);
+  return jwt.sign(payload, secret, { expiresIn: "7d" });
 };
 
 /**
@@ -38,88 +38,180 @@ const generateToken = (user: IUser) => {
  * @route   POST /api/auth/login
  * @access  Public
  */
+
+
 export const loginUser = async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
+    // Added organizationId to inputs (Required for Tenant Users)
+    const { username, password, organizationId } = req.body;
 
     console.log("\n--- NEW LOGIN ATTEMPT ---");
-    console.log("Time:", new Date().toLocaleTimeString());
-    console.log("Request Body:", req.body);
+    console.log(`Username: ${username}, OrganizationId: ${organizationId || 'EMPTY (Super Admin)'}`);
 
-    // 1. Check if username and password exist
     if (!username || !password) {
-      console.log("DEBUG: Failed step 1 (missing username or password)");
-      return res
-        .status(400)
-        .json({ message: "Please provide username and password" });
+      return res.status(400).json({ message: "Please provide username and password" });
     }
 
-    // 2. Find the user by username
-    const lowercaseEmail = username.toLowerCase();
-    console.log("DEBUG: Querying database for user:", lowercaseEmail);
+    const lowercaseInput = username.toLowerCase();
+    
+    // Build flexible query to match username or email (exact or partial)
+    // This handles cases like: user enters "khan" but username is "khan@farooq.com"
+    const buildUserQuery = (input: string) => {
+      // Escape special regex characters
+      const escapedInput = input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      return {
+        $or: [
+          { username: input }, // Exact username match
+          { "profile.email": input }, // Exact email match
+          { username: { $regex: `^${escapedInput}@`, $options: 'i' } }, // Username starts with input@ (e.g., "khan" matches "khan@farooq.com")
+          { "profile.email": { $regex: `^${escapedInput}@`, $options: 'i' } }, // Email starts with input@
+          { username: { $regex: `^${escapedInput}$`, $options: 'i' } }, // Exact match (case-insensitive)
+        ]
+      };
+    };
+    
+    let user: any = null;
+    let isTenantUser = false;
+    let activeOrgId = null;
 
-    const user = await User.findOne({ "username": lowercaseEmail }).select(
-      "+password"
-    );
+    // =========================================================
+    // NEW LOGIC: Organization ID determines login flow
+    // =========================================================
+    // If organizationId is provided → Go directly to that organization's database
+    // If organizationId is empty → Only check Master DB (Super Admin)
+    // This prevents ambiguity when multiple organizations have users with the same username
+    
+    if (organizationId && organizationId.trim() !== '') {
+      // =========================================================
+      // TENANT USER LOGIN (Org Admin, HR Executive, Executive)
+      // =========================================================
+      // Organization ID is provided → Must be a tenant user
+      // Go directly to the specified organization's database
+      console.log(`DEBUG: Organization ID provided. Checking Tenant DB: ${organizationId}`);
 
-    // 3. Check if user exists
+      try {
+        // Normalize organization ID (handle both "org_xxx" and "xxx" formats)
+        const normalizedOrgId = organizationId.startsWith('org_') ? organizationId : `org_${organizationId}`;
+        console.log(`DEBUG: Normalized Org ID: ${normalizedOrgId}`);
+        
+        // Get the User Model specifically connected to this Organization's DB
+        const TenantUser = dbService.getTenantUserModel(normalizedOrgId);
+        
+        console.log(`DEBUG: Searching for user in organization DB with query:`, JSON.stringify(buildUserQuery(lowercaseInput), null, 2));
+        user = await TenantUser.findOne(buildUserQuery(lowercaseInput)).select("+password");
+
+        if (user) {
+          console.log(`DEBUG: User found in tenant DB: ${user.username}, Role: ${user.role}`);
+          isTenantUser = true;
+          activeOrgId = normalizedOrgId;
+        } else {
+          console.log(`DEBUG: User not found in tenant DB`);
+          return res.status(401).json({ 
+            message: "Invalid credentials. Please check your username, password, and Organization ID." 
+          });
+        }
+
+      } catch (err) {
+        console.error("Error connecting to tenant DB:", err);
+        return res.status(500).json({ 
+          message: "Error accessing organization database. Please verify the Organization ID is correct." 
+        });
+      }
+    } else {
+      // =========================================================
+      // SUPER ADMIN LOGIN
+      // =========================================================
+      // No organization ID → Only check Master DB (Super Admin)
+      console.log(`DEBUG: No Organization ID provided. Checking Master DB (Super Admin only)`);
+      
+      user = await User.findOne(buildUserQuery(lowercaseInput)).select("+password");
+      
+      if (!user) {
+        return res.status(401).json({ 
+          message: "Invalid credentials. If you are an organization member, please provide your Organization ID." 
+        });
+      }
+      
+      // Verify user is actually Super Admin
+      if (user.role !== 'Super Admin') {
+        return res.status(401).json({ 
+          message: "Organization ID is required for your account. Please provide your Organization ID to login." 
+        });
+      }
+      
+      console.log(`DEBUG: Super Admin found in Master DB: ${user.username}`);
+      isTenantUser = false;
+      activeOrgId = "MASTER";
+    }
+
+    // =========================================================
+    // STEP 2: VALIDATE PASSWORD
+    // =========================================================
     if (!user) {
-      console.log("DEBUG: Failed step 3 (User not found in database)");
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    console.log("DEBUG: User was found:", user.username);
-    console.log(
-      "DEBUG: Hashed password from DB:",
-      user.password.substring(0, 10) + "..."
-    ); // Show first 10 chars
-
-    // 3. ...and password is correct
-    console.log("DEBUG: Comparing provided password with hashed password...");
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    console.log("DEBUG: Password match result:", isMatch);
-
-    if (!isMatch) {
-      console.log("DEBUG: Failed step 3 (Password comparison FAILED)");
       return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    // 4. Check if user account is active
     if (!user.isActive) {
-      console.log("DEBUG: Failed step 4 (User is not active)");
       return res.status(403).json({ message: "Your account is deactivated." });
     }
 
-    // 5. User is valid!
-    console.log("DEBUG: SUCCESS! User is valid. Generating token...");
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid username or password" });
+    }
+
+    // Additional validation: For tenant users, verify they belong to the correct organization
+    if (isTenantUser && user.organizationId && user.organizationId !== activeOrgId) {
+      console.error(`ERROR: User ${user.username} organizationId (${user.organizationId}) doesn't match requested org (${activeOrgId})`);
+      return res.status(403).json({ 
+        message: "User does not belong to the specified organization. Please verify your Organization ID." 
+      });
+    }
+
+    // =========================================================
+    // STEP 4: GENERATE TOKEN
+    // =========================================================
+    
+    // Update lastLogin (Save back to the correct DB)
     user.lastLogin = new Date();
     await user.save({ validateBeforeSave: false });
 
-    const token = generateToken(user);
+    // Payload: The 'organizationId' claim is crucial for the middleware later
+    const payload = {
+      id: user._id,
+      username: user.username,
+      role: user.role,
+      // If SuperAdmin, orgId is null/MASTER. If Tenant, it's the specific Org ID.
+      organizationId: isTenantUser ? activeOrgId : "MASTER", 
+      permissions: user.permissions,
+    };
 
-    // ✅ After generating the token
+    const token = jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: "7d" });
+
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    res.status(200).json({
+
+    return res.status(200).json({
       message: "Login successful",
       token,
       user: {
         id: user._id,
         username: user.username,
         role: user.role,
-        organizationId: user.organizationId,
-        email: user.profile.email,
-        preferences: user.preferences,
+        organizationId: payload.organizationId,
+        email: user.profile?.email,
+        isSuperAdmin: !isTenantUser
       },
     });
+
   } catch (error) {
     console.error("Login Error:", error);
-    res.status(500).json({ message: "Server error during login" });
+    return res.status(500).json({ message: "Server error during login" });
   }
 };
 
@@ -146,27 +238,21 @@ export const logoutUser = (req: Request, res: Response) => {
 };
 
 export const getCurrentUser = async (req: Request, res: Response) => {
-  try {
-    const token = req.cookies.token;
-    if (!token) return res.status(401).json({ message: "Not authenticated" });
-
-    const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
-    const user = await User.findById(decoded.id);
-
-    if (!user) return res.status(401).json({ message: "User not found" });
-
-    // ✅ Wrap the response in a "user" object to match frontend expectations
-    res.json({
-      user: {
-        id: user._id,
-        username: user.username,
-        role: user.role,
-        organizationId: user.organizationId,
-        email: user.profile.email,
-        preferences: user.preferences,
-      }
-    });
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid token" });
+  // req.user is already populated by the 'protect' middleware
+  // regardless of which database they came from.
+  
+  if (!req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
   }
+
+  return res.json({
+    user: {
+      id: req.user._id,
+      username: req.user.username,
+      role: req.user.role,
+      organizationId: req.user.organizationId,
+      email: req.user.profile?.email,
+      preferences: req.user.preferences,
+    }
+  });
 };

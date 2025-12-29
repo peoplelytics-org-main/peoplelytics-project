@@ -1,20 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IRecruitmentFunnels extends Document {
-  rec_funnel_id:string;
+  rec_funnel_id: string;
   positionId: string;
-  orgId:string;
   shortlisted: number;
   interviewed: number;
   offersExtended: number;
   offersAccepted: number;
   joined: number;
-  // conversionRates: {
-  //   shortlistToInterview: number;
-  //   interviewToOffer: number;
-  //   offerToAccept: number;
-  //   acceptToJoin: number;
-  // };
+  orgId: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,12 +23,12 @@ export const RecruitmentFunnelsSchema = new Schema<IRecruitmentFunnels>({
   positionId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    index: true  // REMOVED unique: true - same position can exist across orgs
   },
-  orgId:{
-    type:String,
-    required:true,
+  orgId: {
+    type: String,
+    required: true,
+    index: true
   },
   shortlisted: {
     type: Number,
@@ -65,40 +59,14 @@ export const RecruitmentFunnelsSchema = new Schema<IRecruitmentFunnels>({
     required: true,
     min: 0,
     default: 0
-  },
-  // conversionRates: {
-  //   shortlistToInterview: {
-  //     type: Number,
-  //     min: 0,
-  //     max: 1,
-  //     default: 0
-  //   },
-  //   interviewToOffer: {
-  //     type: Number,
-  //     min: 0,
-  //     max: 1,
-  //     default: 0
-  //   },
-  //   offerToAccept: {
-  //     type: Number,
-  //     min: 0,
-  //     max: 1,
-  //     default: 0
-  //   },
-  //   acceptToJoin: {
-  //     type: Number,
-  //     min: 0,
-  //     max: 1,
-  //     default: 0
-  //   }
-  // }
+  }
 }, {
   timestamps: true,
   collection: 'recruitment_funnels'
 });
 
-// Indexes for better query performance
-RecruitmentFunnelsSchema.index({ positionId: 1 });
+// Compound index for orgId + positionId (unique per organization)
+RecruitmentFunnelsSchema.index({ orgId: 1, positionId: 1 }, { unique: true });
 RecruitmentFunnelsSchema.index({ createdAt: 1 });
 
 // Virtual for total candidates
@@ -116,6 +84,3 @@ RecruitmentFunnelsSchema.virtual('overallConversionRate').get(function() {
 RecruitmentFunnelsSchema.set('toJSON', {
   virtuals: true
 });
-
-//export const RecruitmentFunnels = mongoose.model<IRecruitmentFunnels>('RecruitmentFunnels', RecruitmentFunnelsSchema);
-

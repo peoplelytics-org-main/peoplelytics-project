@@ -7,20 +7,7 @@ import Card, { CardHeader, CardTitle, CardDescription, CardContent } from '../ui
 import DataUpload from '../DataUpload';
 import AttendanceUpload from '../AttendanceUpload';
 import RecruitmentDataUpload from '../RecruitmentDataUpload';
-import { ChevronDown } from 'lucide-react';
-
-const Accordion: React.FC<{ title: string; children: React.ReactNode; startOpen?: boolean }> = ({ title, children, startOpen = false }) => {
-    const [isOpen, setIsOpen] = React.useState(startOpen);
-    return (
-        <div className="border border-border rounded-lg bg-background">
-            <button type="button" onClick={() => setIsOpen(!isOpen)} className="w-full flex justify-between items-center p-3 hover:bg-border/50 transition-colors">
-                <h4 className="font-semibold text-text-primary text-left">{title}</h4>
-                <ChevronDown className={`h-5 w-5 text-text-secondary transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {isOpen && <div className="p-4 border-t border-border">{children}</div>}
-        </div>
-    );
-};
+import { UploadCloud, Clock, Briefcase, FileSpreadsheet, ChevronRight, Sparkles } from 'lucide-react';
 
 
 const ImportTab: React.FC = () => {
@@ -64,37 +51,105 @@ const ImportTab: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <Card>
+            {/* Primary Employee Data Upload */}
+            <Card className="border-2 border-primary-500/20 bg-gradient-to-br from-primary-900/10 to-background">
                 <CardHeader>
-                    <CardTitle>Employee Data Upload</CardTitle>
-                    <CardDescription>Upload a CSV file with your employee records. This will replace all existing data for the current organization.</CardDescription>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary-500/20 rounded-lg">
+                            <UploadCloud className="h-6 w-6 text-primary-400" />
+                        </div>
+                        <div className="flex-1">
+                            <CardTitle className="text-xl">Employee Data Upload</CardTitle>
+                            <CardDescription className="mt-1">
+                                Upload a CSV file with your employee records. This will replace all existing data for the current organization.
+                            </CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <DataUpload onComplete={handleEmployeeDataComplete} organizationId={organizationId} />
                 </CardContent>
             </Card>
-            <Accordion title="Upload Additional Data">
-                <div className="space-y-6">
-                    <Card>
+
+            {/* Additional Data Uploads Section - More Prominent */}
+            <div className="relative">
+                {/* Decorative Header */}
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-primary-400" />
+                        <h3 className="text-2xl font-bold text-text-primary">Additional Data Uploads</h3>
+                    </div>
+                    <div className="flex-1 h-px bg-gradient-to-r from-primary-500/30 via-primary-500/10 to-transparent"></div>
+                </div>
+
+                {/* Grid Layout for Better Visibility */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Attendance Data Card */}
+                    <Card className="group hover:border-primary-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10">
                         <CardHeader>
-                            <CardTitle>Attendance Data</CardTitle>
-                            <CardDescription>Upload a CSV with attendance records. This will replace existing attendance data for this org.</CardDescription>
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-colors">
+                                    <Clock className="h-5 w-5 text-blue-400" />
+                                </div>
+                                <div className="flex-1">
+                                    <CardTitle className="flex items-center gap-2">
+                                        Attendance Data
+                                        <span className="text-xs font-normal text-text-secondary bg-blue-500/10 px-2 py-0.5 rounded-full">
+                                            CSV Upload
+                                        </span>
+                                    </CardTitle>
+                                    <CardDescription className="mt-2">
+                                        Upload attendance records to track employee presence, absences, and work hours. Supports multiple date formats.
+                                    </CardDescription>
+                                </div>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <AttendanceUpload onComplete={handleAttendanceDataComplete} organizationId={organizationId} />
                         </CardContent>
                     </Card>
-                    <Card>
+
+                    {/* Recruitment Data Card */}
+                    <Card className="group hover:border-primary-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/10">
                         <CardHeader>
-                            <CardTitle>Recruitment Data</CardTitle>
-                            <CardDescription>Upload a CSV with job position and recruitment funnel data. This will replace existing recruitment data for this org.</CardDescription>
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-purple-500/20 rounded-lg group-hover:bg-purple-500/30 transition-colors">
+                                    <Briefcase className="h-5 w-5 text-purple-400" />
+                                </div>
+                                <div className="flex-1">
+                                    <CardTitle className="flex items-center gap-2">
+                                        Recruitment Data
+                                        <span className="text-xs font-normal text-text-secondary bg-purple-500/10 px-2 py-0.5 rounded-full">
+                                            CSV Upload
+                                        </span>
+                                    </CardTitle>
+                                    <CardDescription className="mt-2">
+                                        Upload job positions and recruitment funnel data including applications, interviews, and hiring metrics.
+                                    </CardDescription>
+                                </div>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <RecruitmentDataUpload onComplete={handleRecruitmentDataComplete} organizationId={organizationId} />
                         </CardContent>
                     </Card>
                 </div>
-            </Accordion>
+
+                {/* Helpful Info Banner */}
+                <div className="mt-6 p-4 bg-primary-900/20 border border-primary-500/20 rounded-lg">
+                    <div className="flex items-start gap-3">
+                        <FileSpreadsheet className="h-5 w-5 text-primary-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-text-primary mb-1">
+                                Need help with CSV formatting?
+                            </p>
+                            <p className="text-xs text-text-secondary">
+                                Each upload section includes validation and error handling. Make sure your CSV files have the required columns as specified in each upload section.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

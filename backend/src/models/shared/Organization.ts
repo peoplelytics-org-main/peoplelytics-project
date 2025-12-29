@@ -7,7 +7,7 @@ export interface IOrganization extends Document {
   subscriptionEndDate: Date;
   status: 'Active' | 'Inactive';
   package: 'Basic' |'Pro' | 'Enterprise';
-  employeeCount?: number;
+  quota?: number;
   createdAt: Date;
   updatedAt: Date;
   settings: {
@@ -59,7 +59,7 @@ const OrganizationSchema = new Schema<IOrganization>({
     enum: ['Basic','Intermediate', 'Pro', 'Enterprise'],
     required: true
   },
-  employeeCount: {
+  quota: {
     type: Number,
     default: 0
   },
@@ -126,9 +126,12 @@ const OrganizationSchema = new Schema<IOrganization>({
 
 // Indexes for better query performance
 OrganizationSchema.index({ orgId: 1 });
+OrganizationSchema.index({ name: 1 }); // Index for semantic search on organization name
 OrganizationSchema.index({ status: 1 });
 OrganizationSchema.index({ package: 1 });
 OrganizationSchema.index({ subscriptionEndDate: 1 });
+// Compound index for search queries (name + status)
+OrganizationSchema.index({ name: 1, status: 1 });
 
 export const Organization = mongoose.model<IOrganization>('Organization', OrganizationSchema);
 

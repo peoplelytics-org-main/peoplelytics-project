@@ -9,6 +9,7 @@ interface TopSkillsHighPerformersWidgetProps {
 
 const TopSkillsHighPerformersWidget: React.FC<TopSkillsHighPerformersWidgetProps> = ({ data, options }) => {
     return (
+        
         <ChartCard title="Top Skills of High Performers" description="Most common skills among top performers (top 10). Click a bar to view employees.">
             <div className="h-80">
                 <Bar data={data} options={options} />

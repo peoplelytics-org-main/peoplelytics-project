@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import logo from "../assets/abd2.png"
 import Card from '../components/ui/Card';
 import { NAV_ITEMS } from '../constants';
 import { ArrowRight, CheckCircle, LayoutDashboard, Lightbulb, TrendingUp, FilePieChart, BrainCircuit } from 'lucide-react';
@@ -10,28 +11,28 @@ const DETAILED_FEATURES = [
         name: 'Interactive Dashboards',
         description: 'Get a real-time, bird\'s-eye view of your entire workforce. Our dashboards consolidate all your key HR metrics into one intuitive interface, allowing you to spot trends, identify issues, and track progress towards your goals instantly.',
         subFeatures: ['Customizable KPI Scorecards', 'Drag-and-Drop Widget Layout', 'Interactive Charts with Drill-Down', 'AI-Powered Narrative Summaries'],
-        imageUrl: '/images/feature-dashboard.png',
+        imageUrl: '../assets/dashboard.png',
         icon: LayoutDashboard,
     },
     {
         name: 'Predictive Analytics',
         description: 'Move from reactive to proactive HR strategy. Our AI models analyze your historical data to forecast future trends, from identifying employees at high risk of turnover to predicting future performance and departmental burnout hotspots.',
         subFeatures: ['Turnover Risk Prediction', 'Performance Trajectory Forecasts', 'KPI Forecasting with Confidence Intervals', 'Burnout Risk Hotspot Identification'],
-        imageUrl: '/images/feature-prediction.png',
+        imageUrl: '../assets/predictive.png',
         icon: Lightbulb,
     },
     {
         name: 'Advanced Reporting',
         description: 'Go beyond basic charts with our comprehensive reporting suite. Explore your organizational structure with an interactive org chart, segment your talent with a 9-box grid, and analyze the nuances of talent risk with our risk matrix.',
         subFeatures: ['Interactive Org Chart Explorer', 'Talent Risk & Performance Matrices', 'Detailed Exit Interview Insights', 'Schedulable Reports for Stakeholders'],
-        imageUrl: '/images/feature-reporting.png',
+        imageUrl: '../assets/talent.png',
         icon: FilePieChart,
     },
     {
         name: 'Skill Set & Gap Analysis',
         description: "Understand your organization's true capabilities. Map every skill across your workforce, identify critical skills held by too few people, and run gap analyses to see if you have the talent needed for future challenges.",
         subFeatures: ['Comprehensive Skill Matrix View', 'At-Risk & Niche Skill Identification', 'Skill Impact on Performance Analysis', 'Future-State Skill Gap Planning'],
-        imageUrl: '/images/feature-skills.png',
+        imageUrl: '../assets/Skill.png',
         icon: BrainCircuit,
     },
 ];
@@ -41,11 +42,16 @@ const LandingPage: React.FC = () => {
         <div className="bg-background text-text-primary min-h-screen">
             {/* Header */}
             <header className="py-4 px-6 md:px-10 flex justify-between items-center border-b border-border sticky top-0 bg-background/80 backdrop-blur-sm z-50">
-                <Link to="/" className="flex items-center gap-3">
-                     <div className="p-2 bg-primary-600 rounded-lg">
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <Link to="/" className="flex items-center gap-3 group transition-all duration-300 ease-in-out hover:scale-[1.02]">
+                     <div className="p-1 bg-primary-600 rounded-lg shadow-sm transition-colors group-hover:bg-primary-700 relative overflow-hidden">
+                         {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656-.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                         </svg>
+                         </svg> */}
+                        <img 
+            src={logo} 
+            alt="Peoplelytics Logo" 
+            className="h-16 w-16 object-contain" // Adjusted size slightly to match typical navbar proportions better
+        />
                      </div>
                      <h1 className="text-xl font-bold">Peoplelytics</h1>
                 </Link>

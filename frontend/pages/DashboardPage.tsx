@@ -56,6 +56,7 @@ import * as hrCalculations from '../services/hrCalculations';
 import { AVAILABLE_WIDGETS } from '../constants';
 import { FileWarning, Users, TrendingDown, Clock, Activity, BarChart2, X, Filter, BrainCircuit, Building } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCurrency } from '../hooks/useCurrency';
 import type { Employee } from '../types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement, Filler, ChartDataLabels);
@@ -66,7 +67,8 @@ const DashboardPage: React.FC = () => {
     const { displayedData, attendanceData, jobPositions, recruitmentFunnels, activeOrganization, currentPackageFeatures } = useData();
     const { currentUser } = useAuth();
     const { widgetConfigs, setAllWidgetSizes, resetWidgetSizesToDefault } = useDashboardConfig();
-    const { mode, currency } = useTheme();
+    const { mode } = useTheme();
+    const { formatCompact } = useCurrency();
     const navigate = useNavigate();
 
     const DASHBOARD_FILTERS_KEY = 'dashboardFilters';
@@ -119,6 +121,7 @@ const DashboardPage: React.FC = () => {
     // ... (All useMemo hooks for data calculation remain the same) ...
      const uniqueValues = useMemo(() => {
         const activeEmployees = displayedData.filter(e => !e.terminationDate);
+        console.log(activeEmployees)
         return {
             // FIX: Add explicit sort with localeCompare and filter out falsy values to prevent type errors.
             // FIX: Added explicit string types to sort callback arguments to resolve 'unknown' type error.
@@ -514,7 +517,7 @@ const DashboardPage: React.FC = () => {
             case 'burnout_hotspots': return <BurnoutHotspotsWidget data={{labels: metrics.burnoutHotspots.map(d => d.department), datasets: [{label: 'Avg Risk Score', data: metrics.burnoutHotspots.map(d => d.averageRiskScore), backgroundColor: metrics.burnoutHotspots.map(d => d.averageRiskScore > 65 ? '#ef4444' : d.averageRiskScore > 40 ? '#f59e0b' : '#22c55e')}]}} options={{...baseChartOptions, indexAxis: 'y', plugins: {...baseChartOptions.plugins, legend: { display: false }, tooltip: { ...baseChartOptions.plugins.tooltip, callbacks: { label: (context: any) => { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.x !== null) { label += context.parsed.x.toFixed(2); } return label; } } }, datalabels: { display: true, color: '#fff', anchor: 'center', align: 'center', font: { weight: 'bold' }, formatter: (value: any) => value.toFixed(2)}}, scales: { x: { beginAtZero: true, max: 100 }}}} />;
             case 'retention_by_dept': return <RetentionByDeptWidget data={{labels: metrics.retentionByDept.map(d => d.name), datasets:[{ label: 'Retention Rate', data: metrics.retentionByDept.map(d => d.value), backgroundColor: '#22c55e'}]}} options={{...baseChartOptions, indexAxis: 'y', scales: {...baseChartOptions.scales, x: { ...baseChartOptions.scales.x, ticks: { callback: (v: any) => `${Number(v).toFixed(0)}%` }}}, plugins: {...baseChartOptions.plugins, tooltip: { callbacks: { label: (ctx: any) => `${ctx.dataset.label}: ${ctx.formattedValue}%`}}, datalabels: { display: true, color: '#fff', formatter: (v: any) => `${Number(v).toFixed(2)}` }}}} />;
             case 'turnover_by_tenure': return <TurnoverByTenureWidget data={{labels: metrics.turnoverByTenure.map(d => d.name), datasets:[{ label: 'Leavers', data: metrics.turnoverByTenure.map(d => d.value), backgroundColor: '#6ee7b7'}]}} options={{...baseChartOptions, onClick: handleTurnoverByTenureClick, onHover, plugins: {...baseChartOptions.plugins, datalabels: { display: true, color: '#000' }}}} />;
-            case 'pay_for_performance': return <PayForPerformanceWidget data={{datasets: [{ label: 'Employees', data: metrics.payForPerformance, backgroundColor: 'rgba(59, 130, 246, 0.5)'}]}} options={{...baseChartOptions, plugins: {...baseChartOptions.plugins, tooltip: { callbacks: { label: (ctx: any) => `${ctx.raw.label}: Perf ${ctx.raw.x}, Salary ${ctx.raw.y.toLocaleString()}` }}}}} />;
+            case 'pay_for_performance': return <PayForPerformanceWidget data={{datasets: [{ label: 'Employees', data: metrics.payForPerformance, backgroundColor: 'rgba(59, 130, 246, 0.5)'}]}} options={{...baseChartOptions, scales: { x: { title: { display: true, text: 'Performance Rating', color: textPrimaryColor } }, y: { title: { display: true, text: `Salary (${currency})`, color: textPrimaryColor } } }, plugins: {...baseChartOptions.plugins, tooltip: { callbacks: { label: (ctx: any) => `${ctx.raw.label}: Perf ${ctx.raw.x}, Salary ${format(ctx.raw.y)}` } }}}} />;
             case 'performance_trend': return <PerformanceTrendWidget data={{labels: metrics.performanceTrend.map(d => d.period), datasets: [{ label: 'Avg Performance', data: metrics.performanceTrend.map(d => d.avgPerformance), borderColor: '#10b981'}]}} options={{...baseChartOptions, scales: {...baseChartOptions.scales, y: {min: 3, max: 4}}}}/>;
             case 'performance_calibration': return <PerformanceCalibrationWidget calibrationData={metrics.performanceCalibration} calibrationCounts={metrics.performanceCalibrationCounts} baseChartOptions={baseChartOptions} textPrimaryColor={textPrimaryColor} onClick={handleCalibrationChartClick} onHover={handleInteractiveChartHover} />;
             case 'nine_box_grid': return <ChartCard title="9-Box Grid (Full View)" description="Detailed talent segmentation."><NineBoxGrid data={metrics.nineBoxGrid} /></ChartCard>;
@@ -575,7 +578,7 @@ const DashboardPage: React.FC = () => {
                     <MetricCard title="Annualized Turnover" value={`${metrics.turnoverRate.toFixed(1)}%`} icon={<TrendingDown className="h-5 w-5"/>} />
                     <MetricCard title="Average Tenure" value={`${metrics.averageTenure.toFixed(1)} yrs`} icon={<Clock className="h-5 w-5"/>} />
                     <MetricCard title="Engagement Score" value={metrics.averageEngagement.toFixed(1)} icon={<Activity className="h-5 w-5"/>} />
-                    <MetricCard title="Revenue Per Employee" value={`${currency === 'PKR' ? 'Rs' : '$'}${(metrics.revenuePerEmployee / 1000).toFixed(0)}k`} icon={<BarChart2 className="h-5 w-5"/>} />
+                    <MetricCard title="Revenue Per Employee" value={formatCompact(metrics.revenuePerEmployee)} icon={<BarChart2 className="h-5 w-5"/>} />
                 </div>
             )}
 

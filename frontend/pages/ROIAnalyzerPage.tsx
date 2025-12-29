@@ -8,6 +8,7 @@ import { calculateTurnoverSavings } from '../services/calculations';
 import { getAIAssistance } from '../services/geminiService';
 import { ChevronDown, ChevronUp, Lightbulb, TrendingUp } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCurrency } from '../hooks/useCurrency';
 
 interface AccordionProps {
   title: string;
@@ -27,7 +28,7 @@ const Accordion: React.FC<AccordionProps> = ({ title, children, isOpen, onToggle
 );
 
 const TurnoverSavingsCalculator: React.FC = () => {
-    const { currency } = useTheme();
+    const { format, symbol } = useCurrency();
     const [inputs, setInputs] = useState({ avgCostPerTermination: '5000', turnoverReductionPercent: '10', annualTerminations: '50' });
     const [result, setResult] = useState<number | null>(null);
     const [insight, setInsight] = useState('');
@@ -50,7 +51,7 @@ const TurnoverSavingsCalculator: React.FC = () => {
         if (result === null) return;
         setIsLoadingInsight(true);
         setInsight('');
-        const prompt = `An initiative is projected to save $${result.toFixed(2)} by reducing turnover. It assumes an average cost per termination of $${inputs.avgCostPerTermination}, a turnover reduction of ${inputs.turnoverReductionPercent}%, and ${inputs.annualTerminations} annual terminations. Briefly explain the other, less obvious financial benefits of reducing employee turnover.`;
+        const prompt = `An initiative is projected to save ${format(result)} by reducing turnover. It assumes an average cost per termination of ${format(Number(inputs.avgCostPerTermination))}, a turnover reduction of ${inputs.turnoverReductionPercent}%, and ${inputs.annualTerminations} annual terminations. Briefly explain the other, less obvious financial benefits of reducing employee turnover.`;
         const aiInsight = await getAIAssistance(prompt);
         setInsight(aiInsight);
         setIsLoadingInsight(false);
@@ -58,7 +59,7 @@ const TurnoverSavingsCalculator: React.FC = () => {
 
     return (
         <div className="space-y-4">
-            <Input label="Average Cost per Termination ($)" id="avgCostPerTermination" type="number" value={inputs.avgCostPerTermination} onChange={handleInputChange} />
+            <Input label={`Average Cost per Termination (${symbol})`} id="avgCostPerTermination" type="number" value={inputs.avgCostPerTermination} onChange={handleInputChange} />
             <Input label="Turnover Reduction (%)" id="turnoverReductionPercent" type="number" value={inputs.turnoverReductionPercent} onChange={handleInputChange} />
             <Input label="Annual Terminations" id="annualTerminations" type="number" value={inputs.annualTerminations} onChange={handleInputChange} />
             <Button onClick={handleCalculate}>Calculate Savings</Button>
@@ -66,7 +67,7 @@ const TurnoverSavingsCalculator: React.FC = () => {
                 <div className="mt-4 space-y-4">
                     <div className="p-4 bg-primary-900/50 rounded-md text-center">
                         <p className="text-text-secondary text-sm">Estimated Annual Savings</p>
-                        <p className="text-3xl font-bold text-white">${result.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                        <p className="text-3xl font-bold text-white">{format(result, { maximumFractionDigits: 0 })}</p>
                     </div>
                     <Button onClick={handleGetInsight} isLoading={isLoadingInsight} variant="secondary" className="gap-2"><Lightbulb className="h-4 w-4" /> Get AI Insights</Button>
                     {isLoadingInsight && <p className="text-sm text-text-secondary">Generating insights...</p>}

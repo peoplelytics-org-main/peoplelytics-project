@@ -108,15 +108,207 @@ const ExcelToCsvConverter = () => {
                 'potentialrating': 'potentialRating', 'potential': 'potentialRating',
                 'engagementscore': 'engagementScore', 'engagement': 'engagementScore',
                 'weeklyhours': 'weeklyHours', 'avgweeklyhours': 'weeklyHours', 'hours': 'weeklyHours',
-                'compensationsatisfaction': 'compensationSatisfaction', 'paysatisfaction': 'compensationSatisfaction',
-                'benefitssatisfaction': 'benefitsSatisfaction',
-                'managementsatisfaction': 'managementSatisfaction', 'managersatisfaction': 'managementSatisfaction',
-                'trainingsatisfaction': 'trainingSatisfaction',
+
+
+                // --- FIX IS HERE: Added short aliases ---
+    'compensationsatisfaction': 'compensationSatisfaction', 
+    'paysatisfaction': 'compensationSatisfaction',
+    'compensation': 'compensationSatisfaction', // Added this
+    
+    'benefitssatisfaction': 'benefitsSatisfaction',
+    'benefits': 'benefitsSatisfaction', // Added this
+    
+    'managementsatisfaction': 'managementSatisfaction', 
+    'managersatisfaction': 'managementSatisfaction',
+    'management': 'managementSatisfaction', // Added this
+    
+    'trainingsatisfaction': 'trainingSatisfaction',
+    'training': 'trainingSatisfaction', // Added this
+    // ----------------------------------------
                 'skills': 'skills', 'skillset': 'skills',
                 'trainingcompleted': 'trainingCompleted', 'trainingscompleted': 'trainingCompleted',
                 'trainingtotal': 'trainingTotal', 'totaltrainings': 'trainingTotal',
                 'hasgrievance': 'hasGrievance', 'grievance': 'hasGrievance',
+                'flightriskscore':'flightRiskScore',
+                'impactscore':'impactScore',
+
             };
+
+            const sortedSheetNames = [...workbook.SheetNames]
+    .filter(name => {
+        // Skip instruction/template sheets
+        const lower = name.toLowerCase();
+        return !lower.includes('instruction') && 
+               !lower.includes('template') && 
+               !lower.includes('readme');
+    })
+    .sort((a, b) => {
+        const aLower = a.toLowerCase();
+        const bLower = b.toLowerCase();
+        
+        // Priority 1: Main employee data sheet (process first)
+        const aIsMain = aLower.includes('employee') && aLower.includes('data');
+        const bIsMain = bLower.includes('employee') && bLower.includes('data');
+        if (aIsMain && !bIsMain) return -1;
+        if (!aIsMain && bIsMain) return 1;
+        
+        // Priority 2: Other data sheets that add to employees
+        const aIsAdditional = aLower.includes('salary') || 
+                             aLower.includes('performance') || 
+                             aLower.includes('feedback') ||
+                             aLower.includes('engagement');
+        const bIsAdditional = bLower.includes('salary') || 
+                             bLower.includes('performance') || 
+                             bLower.includes('feedback') ||
+                             bLower.includes('engagement');
+        if (aIsAdditional && !bIsAdditional) return -1;
+        if (!aIsAdditional && bIsAdditional) return 1;
+        
+        // Priority 3: Skills sheet (process last)
+        const aIsSkill = aLower.includes('skill');
+        const bIsSkill = bLower.includes('skill');
+        if (aIsSkill && !bIsSkill) return 1;
+        if (!aIsSkill && bIsSkill) return -1;
+        
+        // Priority 4: Other sheets last
+        const aIsOther = aLower.includes('attendance') || 
+                        aLower.includes('position') || 
+                        aLower.includes('recruitment');
+        const bIsOther = bLower.includes('attendance') || 
+                        bLower.includes('position') || 
+                        bLower.includes('recruitment');
+        if (!aIsOther && bIsOther) return -1;
+        if (aIsOther && !bIsOther) return 1;
+        
+        return 0;
+    });
+
+console.log('📑 Processing sheets in order:', sortedSheetNames);
+
+for (const sheetName of sortedSheetNames) {
+    console.log(`\n📄 Processing sheet: "${sheetName}"`);
+    const worksheet = workbook.Sheets[sheetName];
+    const json: any[] = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: null });
+    
+    if (json.length === 0) {
+        console.log('⚠️ Sheet is empty, skipping...');
+        continue;
+    }
+
+    const headers = Object.keys(json[0]).map(h => h.toLowerCase().trim().replace(/ /g, '').replace(/_/g, ''));
+    console.log('📋 Headers:', headers);
+    
+    // 🔧 Better sheet detection
+    const isSkillSheet = (headers.includes('skillname') || headers.includes('skill')) && 
+                         (headers.includes('skilllevel') || headers.includes('level') || headers.includes('proficiency'));
+    
+    const isFeedbackSheet = (headers.includes('empid') || headers.includes('employeeid')) && 
+                            (headers.includes('engagementscore') || 
+                             headers.includes('compensationsatisfaction') ||
+                             headers.includes('benefitssatisfaction') ||
+                             headers.includes('managementsatisfaction') ||
+                             headers.includes('trainingsatisfaction'));
+    
+    const isSalarySheet = headers.includes('salary') || headers.includes('compensation');
+    const isPerformanceSheet = headers.includes('performancerating') || headers.includes('potentialrating');
+    
+    console.log(`🔍 Detected as: ${
+        isSkillSheet ? 'SKILLS' : 
+        isFeedbackSheet ? 'FEEDBACK/SATISFACTION' : 
+        isSalarySheet ? 'SALARY' :
+        isPerformanceSheet ? 'PERFORMANCE' :
+        'EMPLOYEE DATA'
+    }`);
+
+    if (isSkillSheet) {
+        console.log('⚙️ Processing skills data...');
+        // ... existing skill processing code
+        for (const row of json) {
+            // ... your existing skill processing
+        }
+    } else {
+        // Process as employee data (whether main, feedback, salary, or performance)
+        console.log(`👤 Processing as employee-related data...`);
+        
+        for (const row of json) {
+            const normalizedRow: any = {};
+            let rowId: string | null = null;
+            
+            for (const key in row) {
+                const normalizedKey = String(key).toLowerCase().trim().replace(/ /g, '').replace(/_/g, '');
+                
+                if (employeeKeyMap[normalizedKey]) {
+                    const newKey = employeeKeyMap[normalizedKey];
+                    let value = row[key];
+                    
+                    if (newKey === 'hireDate' || newKey === 'terminationDate') {
+                        value = smartParseDate(value);
+                    }
+                    
+                    if (newKey === 'hasGrievance') {
+                        value = String(value).trim().toLowerCase() === 'true' || String(value).trim() === '1';
+                    }
+
+                    if (value !== null && value !== undefined) {
+                        normalizedRow[newKey] = value;
+                    }
+
+                    if (normalizedKey === 'id' || normalizedKey === 'employeeid' || normalizedKey === 'empid') {
+                        rowId = String(row[key]);
+                        if (isFeedbackSheet) {
+                            console.log(`✅ Found employee ID in feedback sheet: ${rowId}`);
+                        }
+                    }
+                }
+            }
+            
+            if (rowId) {
+                const existingData = employeeMap.get(rowId) || {};
+                const mergedData = { ...existingData, ...normalizedRow };
+                
+                // 🔍 DEBUG: Log when feedback/satisfaction data is merged
+                if (isFeedbackSheet && (normalizedRow.engagementScore || normalizedRow.compensationSatisfaction)) {
+                    console.log(`✅ Merged feedback for ${rowId}:`, {
+                        engagement: mergedData.engagementScore,
+                        compensation: mergedData.compensationSatisfaction,
+                        benefits: mergedData.benefitsSatisfaction,
+                        management: mergedData.managementSatisfaction,
+                        training: mergedData.trainingSatisfaction
+                    });
+                }
+                
+                employeeMap.set(rowId, mergedData);
+            }
+        }
+    }
+}
+
+// After processing all sheets, add this debug
+console.log('\n📊 Final employee data check:');
+let hasEngagement = 0;
+let hasCompensation = 0;
+let hasBenefits = 0;
+let hasManagement = 0;
+let hasTraining = 0;
+
+employeeMap.forEach((emp, id) => {
+    if (emp.engagementScore !== undefined && emp.engagementScore !== '') hasEngagement++;
+    if (emp.compensationSatisfaction !== undefined && emp.compensationSatisfaction !== '') hasCompensation++;
+    if (emp.benefitsSatisfaction !== undefined && emp.benefitsSatisfaction !== '') hasBenefits++;
+    if (emp.managementSatisfaction !== undefined && emp.managementSatisfaction !== '') hasManagement++;
+    if (emp.trainingSatisfaction !== undefined && emp.trainingSatisfaction !== '') hasTraining++;
+});
+
+console.log(`Total employees: ${employeeMap.size}`);
+console.log(`With engagementScore: ${hasEngagement}`);
+console.log(`With compensationSatisfaction: ${hasCompensation}`);
+console.log(`With benefitsSatisfaction: ${hasBenefits}`);
+console.log(`With managementSatisfaction: ${hasManagement}`);
+console.log(`With trainingSatisfaction: ${hasTraining}`);
+
+// Sample first employee to verify
+const firstEmp = Array.from(employeeMap.values())[0];
+console.log('\n📋 Sample employee data:', firstEmp);
 
             const skillKeyMap: Record<string, string> = {
                 'employeeid': 'employeeId', 'id': 'employeeId',
@@ -156,9 +348,11 @@ const ExcelToCsvConverter = () => {
                         
                         for (const key in row) {
                             const normalizedKey = String(key).toLowerCase().trim().replace(/ /g, '').replace(/_/g, '');
+                           
                             if (employeeKeyMap[normalizedKey]) {
                                 const newKey = employeeKeyMap[normalizedKey];
                                 let value = row[key];
+
                                 
                                 if (newKey === 'hireDate' || newKey === 'terminationDate') {
                                     value = smartParseDate(value);
@@ -199,11 +393,11 @@ const ExcelToCsvConverter = () => {
             }
             
              // Check against headcount limit
-            if (currentOrgHeadcount + employeeMap.size > currentOrgHeadcountLimit) {
-                throw new Error(`Headcount limit exceeded. Your plan allows ${currentOrgHeadcountLimit} employees. You have ${currentOrgHeadcount}, and this Excel file contains ${employeeMap.size} records. Please upgrade or reduce the file size.`);
-            }
+            // if (currentOrgHeadcount + employeeMap.size > currentOrgHeadcountLimit) {
+            //     throw new Error(`Headcount limit exceeded. Your plan allows ${currentOrgHeadcountLimit} employees. You have ${currentOrgHeadcount}, and this Excel file contains ${employeeMap.size} records. Please upgrade or reduce the file size.`);
+            // }
             
-            const headers = [ 'id', 'name', 'gender', 'jobTitle', 'department', 'location', 'managerId', 'hireDate', 'terminationDate', 'terminationReason', 'successionStatus', 'salary', 'bonus', 'lastRaiseAmount', 'performanceRating', 'potentialRating', 'engagementScore', 'weeklyHours', 'compensationSatisfaction', 'benefitsSatisfaction', 'managementSatisfaction', 'trainingSatisfaction', 'skills', 'trainingCompleted', 'trainingTotal', 'hasGrievance' ];
+            const headers = [ 'id', 'name', 'gender', 'jobTitle', 'department', 'location', 'managerId', 'hireDate', 'terminationDate', 'terminationReason', 'successionStatus', 'salary', 'bonus', 'lastRaiseAmount', 'performanceRating', 'potentialRating', 'engagementScore', 'weeklyHours', 'compensationSatisfaction', 'benefitsSatisfaction', 'managementSatisfaction', 'trainingSatisfaction', 'skills', 'trainingCompleted', 'trainingTotal', 'hasGrievance','flightRiskScore', 'impactScore'];
             
             const dataForCsv = Array.from(employeeMap.values()).map(emp => {
                 const csvRow: any = {};
@@ -211,6 +405,7 @@ const ExcelToCsvConverter = () => {
                 return csvRow;
             });
             
+
             const newWorksheet = XLSX.utils.json_to_sheet(dataForCsv, { header: headers });
             const csvOutput = XLSX.utils.sheet_to_csv(newWorksheet);
             
@@ -316,9 +511,22 @@ const AttendanceExcelToCsvConverter = () => {
             let allRecords: any[] = [];
 
             const attendanceKeyMap: Record<string, string> = {
-                'employeeid': 'employeeId', 'empid': 'employeeId', 'id': 'employeeId',
-                'date': 'date', 'attendancedate': 'date',
-                'status': 'status', 'attendancestatus': 'status', 'type': 'status'
+                // ID Mappings
+                'employeeid': 'employeeId', 
+                'empid': 'employeeId', 
+                'id': 'employeeId', 
+                'attid': 'employeeId', // Added 'attid' just in case you want to use column A later
+            
+                // Date Mappings (FIX IS HERE)
+                'date': 'date', 
+                'attendancedate': 'date', 
+                'datetimein': 'date',   // <--- Matches "date_time_in" from your screenshot
+                'datetime': 'date',
+            
+                // Status Mappings
+                'status': 'status', 
+                'attendancestatus': 'status', 
+                'type': 'status'
             };
 
             for (const sheetName of workbook.SheetNames) {
@@ -350,7 +558,7 @@ const AttendanceExcelToCsvConverter = () => {
                 throw new Error("No valid attendance records found. Ensure sheets have 'employeeId', 'date', and 'status' columns.");
             }
 
-            const headers = ['employeeId', 'date', 'status'];
+            const headers = [,'employeeId', 'date', 'status'];
             const ws = XLSX.utils.json_to_sheet(allRecords, { header: headers });
             const csv = XLSX.utils.sheet_to_csv(ws);
             setGeneratedCsv(csv);

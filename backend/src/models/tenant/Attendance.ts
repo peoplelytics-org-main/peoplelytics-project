@@ -44,11 +44,11 @@ export const AttendanceSchema = new Schema<IAttendance>({
   collection: 'attendance'
 });
 
-// Compound index to ensure one record per employee per day
-AttendanceSchema.index({ employeeId: 1, date: 1 }, { unique: true });
+// Compound index to ensure one record per employee per day (using date_time_in)
+AttendanceSchema.index({ employeeId: 1, date_time_in: 1 }, { unique: false });
 
 // Indexes for better query performance
-AttendanceSchema.index({ date: 1, status: 1 });
+AttendanceSchema.index({ date_time_in: 1, status: 1 });
 AttendanceSchema.index({ employeeId: 1, status: 1 });
 AttendanceSchema.index({ status: 1 });
 

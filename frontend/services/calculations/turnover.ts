@@ -169,6 +169,8 @@ export const getRegrettableLeaversForManager = (managerId: string, employees: Em
 
 export const calculateFlightRiskScore = (employee: Employee): number => {
     let risk = 0;
+    console.log(employee.engagementScore);
+    console.log(employee.name)
     if (employee.engagementScore < 60) risk += 3;
     else if (employee.engagementScore < 75) risk += 1.5;
     if (employee.managementSatisfaction && employee.managementSatisfaction < 60) risk += 2.5;

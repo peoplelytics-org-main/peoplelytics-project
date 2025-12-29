@@ -46,7 +46,7 @@ export interface Organization {
   subscriptionEndDate: string; // YYYY-MM-DD
   status: 'Active' | 'Inactive';
   package: PackageName;
-  employeeCount?: number;
+  quota?: number;
 }
 
 export type SkillLevel = 'Novice' | 'Beginner' | 'Competent' | 'Proficient' | 'Expert';
@@ -84,9 +84,12 @@ export interface Employee {
   weeklyHours?: number;
   organizationId: string;
   snapshotDate?: string; // YYYY-MM-DD
+  flightRiskScore?:number;
+  impactScore?:number;
 }
 
 export interface AttendanceRecord {
+  id?: string; // ✅ Added for backend compatibility (attendanceId)
   employeeId: string;
   date: string; // YYYY-MM-DD
   status: 'Present' | 'Unscheduled Absence' | 'PTO' | 'Sick Leave';

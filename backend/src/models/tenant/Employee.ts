@@ -10,7 +10,6 @@ export interface IEmployee extends Document {
   terminationDate?: Date;
   terminationReason?: 'Voluntary' | 'Involuntary';
   gender: 'Male' | 'Female' | 'Other';
-  managerId?: string;
   successionStatus: 'Ready Now' | 'Ready in 1-2 Years' | 'Future Potential' | 'Not Assessed';
   createdAt: Date;
   updatedAt: Date;
@@ -67,17 +66,12 @@ export const EmployeeSchema = new Schema<IEmployee>({
     index: true
   },
   
-  managerId: {
-    type: String,
-    index: true
-  },
- 
   successionStatus: {
     type: String,
     enum: ['Ready Now', 'Ready in 1-2 Years', 'Future Potential', 'Not Assessed'],
     default: 'Not Assessed',
     index: true
-  }
+  },
 }, {
   timestamps: true,
   collection: 'employees'
@@ -87,16 +81,13 @@ export const EmployeeSchema = new Schema<IEmployee>({
 EmployeeSchema.index({ employeeId: 1 });
 EmployeeSchema.index({ department: 1, location: 1 });
 EmployeeSchema.index({ jobTitle: 1 });
-EmployeeSchema.index({ performanceRating: 1, potentialRating: 1 });
 EmployeeSchema.index({ managerId: 1 });
 EmployeeSchema.index({ terminationDate: 1 });
 EmployeeSchema.index({ hireDate: 1 });
-EmployeeSchema.index({ snapshotDate: 1 });
 
 // Compound indexes for common queries
-EmployeeSchema.index({ department: 1, performanceRating: 1 });
 EmployeeSchema.index({ location: 1, gender: 1 });
-EmployeeSchema.index({ managerId: 1, performanceRating: 1 });
+EmployeeSchema.index({ department: 1, terminationDate: 1 });
 
 // Virtual for tenure calculation
 EmployeeSchema.virtual('tenure').get(function(this: IEmployee) {
