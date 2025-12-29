@@ -15,13 +15,13 @@ export const SalaryAndCompensationSchema= new Schema <ISalaryAndCompensation>({
         type: String,
         required: true,
         unique: true,
-        index: true
+        
     },
     employeeId: {
         type: String,
         ref:"employees",
         required: true,
-        index: true
+        
     },
     name: {
         type: String,

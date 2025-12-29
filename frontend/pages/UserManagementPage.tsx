@@ -11,6 +11,10 @@ import Switch from '../components/ui/Switch';
 import { APP_PACKAGES } from '../constants';
 import { Link } from 'react-router-dom';
 
+// API Base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const ORG_API_BASE_URL = `${API_BASE_URL}/organizations`;
+
 
 // Props interfaces for the extracted components
 interface SuperAdminViewProps {
@@ -259,7 +263,7 @@ const PackageManagementView: React.FC<PackageManagementViewProps> = ({
     
     const handlePackageChange = async (orgId: string, newPackage: PackageName) => {
         try {
-          const response = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
+          const response = await fetch(`${ORG_API_BASE_URL}/${orgId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -527,7 +531,7 @@ const UserManagementPage: React.FC = () => {
 
     const fetchUsers = async (orgId: string) => {
         try {
-          const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/allusers`, {
+          const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/allusers`, {
             credentials: 'include',
           });
           const data = await response.json();
@@ -562,7 +566,7 @@ const UserManagementPage: React.FC = () => {
               subscriptionEndDate: orgData.subscriptionEndDate,
             };
     
-            const response = await fetch(`http://localhost:5000/api/organizations/${editingOrg.id}`, {
+            const response = await fetch(`${ORG_API_BASE_URL}/${editingOrg.id}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'include',
@@ -608,7 +612,7 @@ const UserManagementPage: React.FC = () => {
         } else {
           // This is your existing "add new organization" logic, which is correct.
           try {
-            const response = await fetch("http://localhost:5000/api/organizations/add-organization", {
+            const response = await fetch(`${ORG_API_BASE_URL}/add-organization`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               credentials: 'include', // Include cookies for authentication
@@ -654,7 +658,7 @@ const UserManagementPage: React.FC = () => {
       useEffect(() => {
         const fetchOrganizations = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/organizations',{
+                const response = await fetch(ORG_API_BASE_URL, {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include', // Include cookies for authentication
@@ -691,7 +695,7 @@ const UserManagementPage: React.FC = () => {
     
             if (editingUser && editingUser.id) {
                 // Update existing user
-                const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/users/${userData.id}`, {
+                const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/users/${userData.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -715,7 +719,7 @@ const UserManagementPage: React.FC = () => {
                 }
             } else {
                 // Add new user
-                const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/add-user`, {
+                const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/add-user`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -754,7 +758,7 @@ const UserManagementPage: React.FC = () => {
     const deleteOrg = async (orgId: string) => {
         if(window.confirm('Are you sure you want to delete this organization and all its users? This cannot be undone.')) {
             try {
-                const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/hard`, {
+                const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/hard`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -793,7 +797,7 @@ const UserManagementPage: React.FC = () => {
     const deleteUser = async (organizationId: string, userId: string) => {
         if (window.confirm('Are you sure you want to delete this user?')) {
             try {
-                const response = await fetch(`http://localhost:5000/api/organizations/${organizationId}/delete-user/${userId}`, {
+                const response = await fetch(`${ORG_API_BASE_URL}/${organizationId}/delete-user/${userId}`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
@@ -841,14 +845,14 @@ const UserManagementPage: React.FC = () => {
         if (!newEndDate) return;
         
         try {
-            const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/activate`, {
+            const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/activate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
             });
     
             // Also update the subscription end date
-            const updateResponse = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
+            const updateResponse = await fetch(`${ORG_API_BASE_URL}/${orgId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -894,7 +898,7 @@ const UserManagementPage: React.FC = () => {
         if (currentStatus === 'Active') {
             if (window.confirm(`Are you sure you want to DEACTIVATE this organization? They will lose all access.`)) {
                 try {
-                    const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/deactivate`, {
+                    const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/deactivate`, {
                         method: 'PATCH',
                         credentials: 'include',
                     });
@@ -924,12 +928,12 @@ const UserManagementPage: React.FC = () => {
                     sixMonthsFromNow.setMonth(today.getMonth() + 6);
                     const formatDate = (date: Date) => date.toISOString().split('T')[0];
     
-                    const response = await fetch(`http://localhost:5000/api/organizations/${orgId}/activate`, {
+                    const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/activate`, {
                         method: 'PATCH',
                         credentials: 'include',
                     });
     
-                    const updateResponse = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
+                    const updateResponse = await fetch(`${ORG_API_BASE_URL}/${orgId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         credentials: 'include',
@@ -972,7 +976,7 @@ const UserManagementPage: React.FC = () => {
         const numCount = parseInt(count, 10);
         
         try {
-            const response = await fetch(`http://localhost:5000/api/organizations/${orgId}`, {
+            const response = await fetch(`${ORG_API_BASE_URL}/${orgId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

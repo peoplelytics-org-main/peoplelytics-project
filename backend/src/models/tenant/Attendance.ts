@@ -14,29 +14,29 @@ export const AttendanceSchema = new Schema<IAttendance>({
   attendanceId:{
     type: String,
     required: true,
-    index: true
+    
   },
   employeeId: {
     type: String,
     ref:"employees",
     required: true,
-    index: true
+    
   },
   date_time_in: {
     type: Date,
     required: true,
-    index: true
+    
   },
   date_time_out: {
     type: Date,
     required: false,
-    index: true
+    
   },
   status: {
     type: String,
     enum: ['Present', 'Unscheduled Absence', 'PTO', 'Sick Leave'],
     required: true,
-    index: true
+    
   },
   
 }, {

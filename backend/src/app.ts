@@ -32,9 +32,32 @@ const app = express();
 
 // Security middleware
 app.use(helmet());
+
+// CORS configuration for production (supports multiple origins for Netlify preview deployments)
+const allowedOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : process.env.FRONTEND_URL 
+    ? [process.env.FRONTEND_URL]
+    : process.env.NODE_ENV === 'production'
+      ? [] // Production requires explicit CORS_ORIGIN
+      : ['http://localhost:3000']; // Development fallback
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Organization-ID'],
+  exposedHeaders: ['X-Total-Count', 'X-Page', 'X-Limit']
 }));
 
 // Rate limiting - General limiter (more lenient)

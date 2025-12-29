@@ -21,11 +21,47 @@ export class DatabaseService {
 
   /**
    * Get base MongoDB URI without database name
+   * MongoDB Atlas ONLY - no local fallback
    */
   private getBaseUri(): string {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/master_db';
-    // Remove any database name from URI
-    return mongoUri.replace(/\/[^\/]+$/, '');
+    const mongoUri = process.env.MONGODB_URI;
+    
+    if (!mongoUri) {
+      logger.error('❌ MONGODB_URI environment variable is not set!');
+      throw new Error('MONGODB_URI environment variable is required. Application requires MongoDB Atlas connection.');
+    }
+    
+    // Ensure it's MongoDB Atlas and not local MongoDB
+    if (mongoUri.includes('mongodb://localhost') || mongoUri.includes('127.0.0.1')) {
+      logger.error('❌ Local MongoDB connection detected!');
+      throw new Error('Local MongoDB connections are not allowed. Use MongoDB Atlas connection string.');
+    }
+    
+    // Handle MongoDB Atlas URIs (mongodb+srv://) and regular URIs
+    // Remove database name and preserve query parameters
+    // Pattern: /database-name?query or /database-name
+    const dbNamePattern = /\/[^\/\?]+(\?|$)/;
+    
+    if (dbNamePattern.test(mongoUri)) {
+      // Extract query string if exists
+      const queryIndex = mongoUri.indexOf('?');
+      const hasQuery = queryIndex !== -1;
+      
+      if (hasQuery) {
+        // Remove database name but keep query string
+        const beforeQuery = mongoUri.substring(0, queryIndex);
+        const queryString = mongoUri.substring(queryIndex);
+        // Remove last path segment (database name)
+        const baseUri = beforeQuery.replace(/\/[^\/]+$/, '');
+        return `${baseUri}${queryString}`;
+      } else {
+        // No query string, just remove database name
+        return mongoUri.replace(/\/[^\/]+$/, '');
+      }
+    }
+    
+    // If no database name found, return as is
+    return mongoUri;
   }
 
   /**
@@ -57,8 +93,13 @@ export class DatabaseService {
       const coreDbName = 'peoplelytics_core';
       const baseUri = this.getBaseUri();
       
+      // Append database name, handling query strings
+      const connectionUri = baseUri.includes('?') 
+        ? baseUri.replace('?', `/${coreDbName}?`)
+        : `${baseUri}/${coreDbName}`;
+      
       this.coreConnection = mongoose.createConnection(
-        `${baseUri}/${coreDbName}`,
+        connectionUri,
         {
           maxPoolSize: 10,
           serverSelectionTimeoutMS: 5000,
@@ -91,8 +132,13 @@ export class DatabaseService {
     const orgDbName = `org_${normalizedOrgId}`;
     const baseUri = this.getBaseUri();
     
+    // Append database name, handling query strings
+    const connectionUri = baseUri.includes('?') 
+      ? baseUri.replace('?', `/${orgDbName}?`)
+      : `${baseUri}/${orgDbName}`;
+    
     const orgConnection = mongoose.createConnection(
-      `${baseUri}/${orgDbName}`,
+      connectionUri,
       {
         maxPoolSize: 5,
         serverSelectionTimeoutMS: 5000,

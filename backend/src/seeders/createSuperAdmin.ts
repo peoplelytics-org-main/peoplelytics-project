@@ -10,8 +10,22 @@ dotenv.config();
  */
 const createSuperAdmin = async () => {
   try {
-    // Connect to the core database
-    const dbUri = process.env.MONGODB_URI || "mongodb://localhost:27017/master_db";
+    // Connect to the core database - MongoDB Atlas ONLY
+    const dbUri = process.env.MONGODB_URI;
+    
+    if (!dbUri) {
+      console.error('❌ MONGODB_URI environment variable is not set!');
+      console.error('Please set MONGODB_URI in your .env file with your MongoDB Atlas connection string.');
+      process.exit(1);
+    }
+    
+    // Ensure it's MongoDB Atlas and not local MongoDB
+    if (dbUri.includes('mongodb://localhost') || dbUri.includes('127.0.0.1')) {
+      console.error('❌ Local MongoDB connection detected!');
+      console.error('This application only supports MongoDB Atlas. Please use a MongoDB Atlas connection string.');
+      process.exit(1);
+    }
+    
     await mongoose.connect(dbUri);
     console.log('✅ Connected to DB:', dbUri);
 

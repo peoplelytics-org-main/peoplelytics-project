@@ -24,37 +24,31 @@ export const ReportsSchema = new Schema<IReports>({
   reportId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   name: {
     type: String,
     required: true,
-    trim: true,
-    index: true
+    trim: true
   },
   type: {
     type: String,
     required: true,
-    trim: true,
-    index: true
+    trim: true
   },
   generatedBy: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   parameters: {
     dateRange: {
       start: {
         type: Date,
-        required: true,
-        index: true
+        required: true
       },
       end: {
         type: Date,
-        required: true,
-        index: true
+        required: true
       }
     },
     departments: [{
@@ -69,8 +63,7 @@ export const ReportsSchema = new Schema<IReports>({
     type: String,
     enum: ['generating', 'completed', 'failed'],
     required: true,
-    default: 'generating',
-    index: true
+    default: 'generating'
   },
   filePath: {
     type: String,
@@ -78,8 +71,7 @@ export const ReportsSchema = new Schema<IReports>({
   },
   expiresAt: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   }
 }, {
   timestamps: true,
@@ -87,7 +79,7 @@ export const ReportsSchema = new Schema<IReports>({
 });
 
 // Indexes for better query performance
-ReportsSchema.index({ reportId: 1 });
+// Note: reportId already has index from unique: true
 ReportsSchema.index({ generatedBy: 1 });
 ReportsSchema.index({ type: 1 });
 ReportsSchema.index({ status: 1 });

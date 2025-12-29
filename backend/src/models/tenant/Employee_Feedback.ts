@@ -16,20 +16,20 @@ export const EmployeeFeedbackSchema = new Schema<IEmployeeFeedback>({
     satisId: {
       type: String,
       required: true,
-      index: true
+      
     },
   employeeId: {
     type: String,
     ref:"employees",
     required: true,
-    index: true
+    
   },
   engagementScore: {
     type: Number,
     required: true,
     min: 0,
     max: 100,
-    index: true
+    
   },
   compensationSatisfaction:{
     type:Number,

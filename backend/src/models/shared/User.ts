@@ -35,8 +35,7 @@ export const UserSchema = new Schema<IUser>({
     required: true,
     unique: true,
     lowercase: true,
-    trim: true,
-    index: true
+    trim: true
   },
   password: {
     type: String, 
@@ -51,7 +50,6 @@ export const UserSchema = new Schema<IUser>({
   },
   organizationId: {
     type: String,
-    index: true,
     sparse: true // Allows null values but creates index for non-null values
   },
   organizationName: {
@@ -125,10 +123,9 @@ export const UserSchema = new Schema<IUser>({
 });
 
 // Indexes for better query performance
-UserSchema.index({ username: 1 });
-UserSchema.index({ organizationId: 1 });
+// Note: username and profile.email already have indexes from unique: true
+// Note: organizationId already has index from sparse: true
 UserSchema.index({ role: 1 });
-UserSchema.index({ 'profile.email': 1 });
 UserSchema.index({ isActive: 1 });
 
 // Virtual for full name

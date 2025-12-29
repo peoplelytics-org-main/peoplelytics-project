@@ -16,14 +16,12 @@ export const DepartmentsSchema = new Schema<IDepartments>({
   departmentId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   name: {
     type: String,
     required: true,
-    trim: true,
-    index: true
+    trim: true
   },
   description: {
     type: String,
@@ -32,8 +30,7 @@ export const DepartmentsSchema = new Schema<IDepartments>({
   },
   headOfDepartment: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   budget: {
     type: Number,
@@ -43,13 +40,11 @@ export const DepartmentsSchema = new Schema<IDepartments>({
   location: {
     type: String,
     required: true,
-    trim: true,
-    index: true
+    trim: true
   },
   isActive: {
     type: Boolean,
-    default: true,
-    index: true
+    default: true
   }
 }, {
   timestamps: true,

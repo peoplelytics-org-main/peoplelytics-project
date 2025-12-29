@@ -1,6 +1,9 @@
 import React, { createContext, useState, useContext, useMemo, useCallback, useEffect } from 'react';
 import type { User, UserRole } from '../types';
 
+// API Base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 
 interface AuthContextType {
     currentUser: User | null;
@@ -71,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isCheckingAuthRef.current = true;
       setIsLoading(true);
       try {
-        const response = await fetch("http://localhost:5000/api/auth/me", {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
           method: "GET",
           credentials: "include"
         });
@@ -179,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = useCallback(async (username: string, password: string,organizationId?:string) => {
         // This function now calls the real API using fetch
         try {
-          const response = await fetch('http://localhost:5000/api/auth/login', {
+          const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -214,7 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const logout = useCallback(async () => {
         // This calls the backend to clear the httpOnly cookie
         try {
-          await fetch('http://localhost:5000/api/auth/logout', {
+          await fetch(`${API_BASE_URL}/auth/logout`, {
             method: 'POST',
             // ❗️ This is critical for sending the cookie to be cleared
             credentials: 'include',

@@ -22,34 +22,34 @@ export const LeavesSchema = new Schema<ILeaves>({
     type: String,
     required: true,
     unique: true,
-    index: true
+    
   },
   employeeId: {
     type: String,
     required: true,
-    index: true
+    
   },
   employeeName: {
     type: String,
     required: true,
     trim: true,
-    index: true
+    
   },
   leaveType: {
     type: String,
     enum: ['Annual', 'Sick', 'Personal', 'Maternity', 'Paternity', 'Unpaid', 'Other'],
     required: true,
-    index: true
+    
   },
   startDate: {
     type: Date,
     required: true,
-    index: true
+    
   },
   endDate: {
     type: Date,
     required: true,
-    index: true
+    
   },
   days: {
     type: Number,
@@ -60,7 +60,7 @@ export const LeavesSchema = new Schema<ILeaves>({
     type: String,
     enum: ['Pending', 'Approved', 'Rejected', 'Cancelled'],
     default: 'Pending',
-    index: true
+    
   },
   reason: {
     type: String,

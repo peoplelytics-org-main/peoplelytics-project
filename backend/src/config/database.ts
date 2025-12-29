@@ -1,7 +1,44 @@
 import mongoose from 'mongoose';
 import { logger } from '@/utils/helpers/logger';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/master_db';
+// Get MongoDB URI from environment - MongoDB Atlas ONLY (no local fallback)
+const getMongoUri = (): string => {
+  const uri = process.env.MONGODB_URI;
+  
+  if (!uri) {
+    logger.error('❌ MONGODB_URI environment variable is not set!');
+    logger.error('Please set MONGODB_URI in your .env file with your MongoDB Atlas connection string.');
+    throw new Error('MONGODB_URI environment variable is required. Application requires MongoDB Atlas connection.');
+  }
+  
+  // Ensure it's MongoDB Atlas (mongodb+srv://) and not local MongoDB
+  if (uri.includes('mongodb://localhost') || uri.includes('127.0.0.1')) {
+    logger.error('❌ Local MongoDB connection detected!');
+    logger.error('This application only supports MongoDB Atlas. Please use a MongoDB Atlas connection string.');
+    throw new Error('Local MongoDB connections are not allowed. Use MongoDB Atlas connection string.');
+  }
+  
+  // If URI doesn't contain a database name, append master_db
+  // MongoDB Atlas URIs might not have database name
+  if (uri.includes('mongodb+srv://') || uri.includes('mongodb://')) {
+    // Check if URI already has a database name (contains /[database-name] or /[database-name]?)
+    const hasDbName = /\/[^\/\?]+(\?|$)/.test(uri.split('@')[1] || '');
+    
+    if (!hasDbName) {
+      // Append database name before query parameters
+      const separator = uri.includes('?') ? '/' : '/';
+      const queryIndex = uri.indexOf('?');
+      if (queryIndex !== -1) {
+        return `${uri.substring(0, queryIndex)}/master_db${uri.substring(queryIndex)}`;
+      }
+      return `${uri}/master_db`;
+    }
+  }
+  
+  return uri;
+};
+
+const MONGODB_URI = getMongoUri();
 const MONGODB_OPTIONS = {
   maxPoolSize: 10,
   serverSelectionTimeoutMS: 5000,
@@ -50,9 +87,16 @@ export const disconnectDatabase = async (): Promise<void> => {
 export const getOrganizationDatabase = (orgId: string): mongoose.Connection => {
   const orgDbName = `org_${orgId}`;
   
+  // Extract base URI without database name
+  let baseUri = MONGODB_URI;
+  // Remove database name from URI (handle both /master_db and /database-name patterns)
+  baseUri = baseUri.replace(/\/[^\/\?]+(\?|$)/, '');
+  // If there's a query string, preserve it
+  const queryString = MONGODB_URI.includes('?') ? MONGODB_URI.substring(MONGODB_URI.indexOf('?')) : '';
+  
   // Create a new connection for the organization database
   const orgConnection = mongoose.createConnection(
-    `${MONGODB_URI.replace('/master_db', '')}/${orgDbName}`,
+    `${baseUri}/${orgDbName}${queryString}`,
     MONGODB_OPTIONS
   );
 
@@ -63,8 +107,15 @@ export const getOrganizationDatabase = (orgId: string): mongoose.Connection => {
 export const getCoreDatabase = (): mongoose.Connection => {
   const coreDbName = 'peoplelytics_core';
   
+  // Extract base URI without database name
+  let baseUri = MONGODB_URI;
+  // Remove database name from URI
+  baseUri = baseUri.replace(/\/[^\/\?]+(\?|$)/, '');
+  // Preserve query string if exists
+  const queryString = MONGODB_URI.includes('?') ? MONGODB_URI.substring(MONGODB_URI.indexOf('?')) : '';
+  
   const coreConnection = mongoose.createConnection(
-    `${MONGODB_URI.replace('/peoplelytics', '')}/${coreDbName}`,
+    `${baseUri}/${coreDbName}${queryString}`,
     MONGODB_OPTIONS
   );
 

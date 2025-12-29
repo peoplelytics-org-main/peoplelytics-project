@@ -33,8 +33,7 @@ const OrganizationSchema = new Schema<IOrganization>({
   orgId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   name: {
     type: String,
@@ -125,7 +124,7 @@ const OrganizationSchema = new Schema<IOrganization>({
 });
 
 // Indexes for better query performance
-OrganizationSchema.index({ orgId: 1 });
+// Note: orgId already has index from unique: true
 OrganizationSchema.index({ name: 1 }); // Index for semantic search on organization name
 OrganizationSchema.index({ status: 1 });
 OrganizationSchema.index({ package: 1 });

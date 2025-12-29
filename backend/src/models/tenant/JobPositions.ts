@@ -21,45 +21,45 @@ export const JobPositionsSchema = new Schema<IJobPositions>({
     type: String,
     required: true,
     unique: true,
-    index: true
+    
   },
   title: {
     type: String,
     required: true,
     trim: true,
-    index: true
+    
   },
   department: {
     type: String,
     required: true,
     trim: true,
-    index: true
+    
   },
   status: {
     type: String,
     enum: ['Open', 'Closed', 'On Hold'],
     required: true,
     default: 'Open',
-    index: true
+    
   },
   openDate: {
     type: Date,
     required: true,
     default: Date.now,
-    index: true
+    
   },
   closeDate: {
     type: Date,
-    index: true
+    
   },
   hiredEmployeeId: {
     type: String,
     ref:"employees",
-    index: true
+    
   },
   onHoldDate: {
     type: Date,
-    index: true
+    
   },
   heldBy: {
     type: String,
@@ -70,13 +70,13 @@ export const JobPositionsSchema = new Schema<IJobPositions>({
     type: String,
     enum: ['Replacement', 'New'],
     required: true,
-    index: true
+    
   },
   budgetStatus: {
     type: String,
     enum: ['Budgeted', 'Non-Budgeted'],
     required: true,
-    index: true
+    
   },
   
 }, {

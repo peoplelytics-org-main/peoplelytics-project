@@ -4,7 +4,7 @@ import { User } from '../../types';
 // Helper to get the token (adjust based on how you store your auth token)
 const getAuthToken = () => localStorage.getItem('token'); 
 
-const API_BASE_URL = 'http://localhost:5000/api/organizations'; // Replace with your actual backend URL
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api') + '/organizations';
 
 export const usersApi = {
   /**

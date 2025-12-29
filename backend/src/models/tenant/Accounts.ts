@@ -17,19 +17,19 @@ export const AccountsSchema = new Schema<IAccounts>({
     type: String,
     required: true,
     unique: true,
-    index: true
+    
   },
   accountName: {
     type: String,
     required: true,
     trim: true,
-    index: true
+    
   },
   accountType: {
     type: String,
     enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'],
     required: true,
-    index: true
+    
   },
   balance: {
     type: Number,
@@ -41,7 +41,7 @@ export const AccountsSchema = new Schema<IAccounts>({
     required: true,
     default: 'USD',
     trim: true,
-    index: true
+    
   },
   description: {
     type: String,
@@ -50,7 +50,7 @@ export const AccountsSchema = new Schema<IAccounts>({
   isActive: {
     type: Boolean,
     default: true,
-    index: true
+    
   }
 }, {
   timestamps: true,

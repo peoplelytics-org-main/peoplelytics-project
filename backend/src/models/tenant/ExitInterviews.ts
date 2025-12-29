@@ -30,7 +30,7 @@ export const ExitInterviewsSchema = new Schema<IExitInterviews>({
     type: String,
     ref:"employees",
     required: true,
-    index: true
+    
   },
   orgId:{
     type:String,
@@ -40,7 +40,7 @@ export const ExitInterviewsSchema = new Schema<IExitInterviews>({
     type: String,
     required: true,
     trim: true,
-    index: true
+    
   },
   secondaryReasonForLeaving: {
     type: String,
@@ -51,7 +51,7 @@ export const ExitInterviewsSchema = new Schema<IExitInterviews>({
       type: String,
       enum: ['Positive', 'Neutral', 'Negative'],
       required: true,
-      index: true
+      
     },
     quote: {
       type: String,
@@ -69,7 +69,7 @@ export const ExitInterviewsSchema = new Schema<IExitInterviews>({
       type: String,
       enum: ['Positive', 'Neutral', 'Negative'],
       required: true,
-      index: true
+      
     },
     quote: {
       type: String,
@@ -87,7 +87,7 @@ export const ExitInterviewsSchema = new Schema<IExitInterviews>({
       type: String,
       enum: ['Positive', 'Neutral', 'Negative'],
       required: true,
-      index: true
+      
     },
     quote: {
       type: String,
@@ -104,7 +104,7 @@ export const ExitInterviewsSchema = new Schema<IExitInterviews>({
     type: Date,
     required: true,
     default: Date.now,
-    index: true
+    
   }
 }, {
   timestamps: true,

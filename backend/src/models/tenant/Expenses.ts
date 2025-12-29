@@ -23,27 +23,27 @@ export const ExpensesSchema = new Schema<IExpenses>({
     type: String,
     required: true,
     unique: true,
-    index: true
+    
   },
   employeeId: {
     type: String,
-    index: true
+    
   },
   employeeName: {
     type: String,
     trim: true,
-    index: true
+    
   },
   department: {
     type: String,
     trim: true,
-    index: true
+    
   },
   category: {
     type: String,
     required: true,
     trim: true,
-    index: true
+    
   },
   amount: {
     type: Number,
@@ -64,7 +64,7 @@ export const ExpensesSchema = new Schema<IExpenses>({
   expenseDate: {
     type: Date,
     required: true,
-    index: true
+    
   },
   receiptUrl: {
     type: String,
@@ -74,7 +74,7 @@ export const ExpensesSchema = new Schema<IExpenses>({
     type: String,
     enum: ['Pending', 'Approved', 'Rejected', 'Paid'],
     default: 'Pending',
-    index: true
+    
   },
   approvedBy: {
     type: String,

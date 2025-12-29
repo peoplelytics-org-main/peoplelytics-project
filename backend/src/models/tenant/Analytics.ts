@@ -22,18 +22,18 @@ export const AnalyticsSchema = new Schema<IAnalytics>({
     type: String,
     required: true,
     trim: true,
-    index: true
+    
   },
   period: {
     type: String,
     required: true,
     trim: true,
-    index: true
+    
   },
   value: {
     type: Number,
     required: true,
-    index: true
+    
   },
   breakdown: {
     byDepartment: {
@@ -53,13 +53,13 @@ export const AnalyticsSchema = new Schema<IAnalytics>({
     type: Date,
     required: true,
     default: Date.now,
-    index: true
+    
   },
   dataSource: {
     type: String,
     required: true,
     trim: true,
-    index: true
+    
   }
 }, {
   timestamps: true,

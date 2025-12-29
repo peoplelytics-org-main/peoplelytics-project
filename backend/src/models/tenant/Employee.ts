@@ -19,8 +19,7 @@ export const EmployeeSchema = new Schema<IEmployee>({
   employeeId: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   name: {
     type: String,
@@ -30,29 +29,24 @@ export const EmployeeSchema = new Schema<IEmployee>({
   department: {
     type: String,
     required: true,
-    trim: true,
-    index: true
+    trim: true
   },
   jobTitle: {
     type: String,
     required: true,
-    trim: true,
-    index: true
+    trim: true
   },
   location: {
     type: String,
     required: true,
-    trim: true,
-    index: true
+    trim: true
   },
   hireDate: {
     type: Date,
-    required: true,
-    index: true
+    required: true
   },
   terminationDate: {
-    type: Date,
-    index: true
+    type: Date
   },
   terminationReason: {
     type: String,
@@ -62,15 +56,13 @@ export const EmployeeSchema = new Schema<IEmployee>({
   gender: {
     type: String,
     enum: ['Male', 'Female', 'Other'],
-    required: true,
-    index: true
+    required: true
   },
   
   successionStatus: {
     type: String,
     enum: ['Ready Now', 'Ready in 1-2 Years', 'Future Potential', 'Not Assessed'],
-    default: 'Not Assessed',
-    index: true
+    default: 'Not Assessed'
   },
 }, {
   timestamps: true,
@@ -78,7 +70,7 @@ export const EmployeeSchema = new Schema<IEmployee>({
 });
 
 // Indexes for better query performance
-EmployeeSchema.index({ employeeId: 1 });
+// Note: employeeId already has index from unique: true
 EmployeeSchema.index({ department: 1, location: 1 });
 EmployeeSchema.index({ jobTitle: 1 });
 EmployeeSchema.index({ managerId: 1 });

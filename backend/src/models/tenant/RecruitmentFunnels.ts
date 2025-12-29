@@ -17,18 +17,15 @@ export const RecruitmentFunnelsSchema = new Schema<IRecruitmentFunnels>({
   rec_funnel_id: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   positionId: {
     type: String,
-    required: true,
-    index: true  // REMOVED unique: true - same position can exist across orgs
+    required: true  // REMOVED unique: true - same position can exist across orgs
   },
   orgId: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   shortlisted: {
     type: Number,

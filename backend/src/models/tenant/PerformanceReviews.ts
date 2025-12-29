@@ -20,7 +20,7 @@ export const PerformanceAndEngagementSchema = new Schema<IPerformanceAndEngageme
     type: String,
     ref:"employees",
     required: true,
-    index: true
+    
   },
   name:{
     type:String,
@@ -31,13 +31,13 @@ export const PerformanceAndEngagementSchema = new Schema<IPerformanceAndEngageme
     required: true,
     min: 1,
     max: 5,
-    index: true
+    
   },
   potentialRating: {
     type: Number,
     required: true,
     min: 1,
-    index: true
+    
   },
   
   flightRiskScore:{
@@ -118,24 +118,24 @@ export const PerformanceAndEngagementSchema = new Schema<IPerformanceAndEngageme
 //   type: String,
 //   required: true,
 //   trim: true,
-//   index: true
+//   
 // },
 // reviewDate: {
 //   type: Date,
 //   required: true,
-//   index: true
+//   
 // },
 // reviewerId: {
 //   type: String,
 //   required: true,
-//   index: true
+//   
 // },
 // rating: {
 //   type: Number,
 //   required: true,
 //   min: 1,
 //   max: 5,
-//   index: true
+//   
 // },
 // goals: [{
 //   goal: {
@@ -147,7 +147,7 @@ export const PerformanceAndEngagementSchema = new Schema<IPerformanceAndEngageme
 //     type: String,
 //     enum: ['Completed', 'In Progress', 'Not Started', 'Overdue'],
 //     required: true,
-//     index: true
+//     
 //   },
 //   weight: {
 //     type: Number,

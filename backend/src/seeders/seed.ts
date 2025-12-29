@@ -53,10 +53,22 @@ const defaultPreferences = {
 
 const seed = async () => {
   try {
-    // 1. Connect to the core database
-    const dbUri = (process.env.MONGO_URI)
-  ? process.env.MONGO_URI + "/master_db"
-  : "mongodb://localhost:27017/master_db";
+    // 1. Connect to the core database - MongoDB Atlas ONLY
+    const dbUri = process.env.MONGODB_URI;
+    
+    if (!dbUri) {
+      console.error('❌ MONGODB_URI environment variable is not set!');
+      console.error('Please set MONGODB_URI in your .env file with your MongoDB Atlas connection string.');
+      process.exit(1);
+    }
+    
+    // Ensure it's MongoDB Atlas and not local MongoDB
+    if (dbUri.includes('mongodb://localhost') || dbUri.includes('127.0.0.1')) {
+      console.error('❌ Local MongoDB connection detected!');
+      console.error('This application only supports MongoDB Atlas. Please use a MongoDB Atlas connection string.');
+      process.exit(1);
+    }
+    
     await mongoose.connect(dbUri);
     console.log('✅ Connected to DB:', dbUri);
 
@@ -207,10 +219,29 @@ const seed = async () => {
     console.log('✨ Seeder Completed Successfully!');
     console.log('---');
     console.log('Login Credentials:');
-    console.log(`  Super Admin: \n Email:admin@peoplelytics.com  \n   user: superadmin \n    pass: SuperAdminP@ss123!`);
-    console.log(`  Org Admin (Acme): \n Email: admin@acme.com   user: acme_admin \n    pass: 'OrgAdminP@ss123!`);
-    console.log(`  HR Analyst (Acme): \n Email:hr@acme.com \n   user: acme_hr \n    pass: HrAnalystP@ss123!`);
-    console.log(`  Executive (Acme): \n Email: exec@acme.com \n   user: acme_exec \n    pass: ExecP@ss123!`);
+    console.log(`  Super Admin:`);
+    console.log(`    Username: ${superAdmin.username}`);
+    console.log(`    Email: ${superAdmin.profile.email}`);
+    console.log(`    Password: SuperAdminP@ss123!`);
+    console.log(`    Organization ID: (leave empty for Super Admin)`);
+    console.log('');
+    console.log(`  Org Admin (Acme):`);
+    console.log(`    Username: ${orgAdmin.username}`);
+    console.log(`    Email: ${orgAdmin.profile.email}`);
+    console.log(`    Password: OrgAdminP@ss123!`);
+    console.log(`    Organization ID: ${acmeOrg.orgId}`);
+    console.log('');
+    console.log(`  HR Analyst (Acme):`);
+    console.log(`    Username: ${hrAnalyst.username}`);
+    console.log(`    Email: ${hrAnalyst.profile.email}`);
+    console.log(`    Password: HrAnalystP@ss123!`);
+    console.log(`    Organization ID: ${acmeOrg.orgId}`);
+    console.log('');
+    console.log(`  Executive (Acme):`);
+    console.log(`    Username: ${executive.username}`);
+    console.log(`    Email: ${executive.profile.email}`);
+    console.log(`    Password: ExecP@ss123!`);
+    console.log(`    Organization ID: ${acmeOrg.orgId}`);
 
 
     process.exit(0);

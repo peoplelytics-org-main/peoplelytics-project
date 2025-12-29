@@ -13,32 +13,27 @@ export interface ISkills extends Document {
 export const SkillsSchema = new Schema<ISkills>({
   skillLevelId:{
     type:String,
-    required:true,
-    index:true
+    required:true
   },
   employeeId: {
     type: String,
     ref:"employees",
-    required: true,
-    index: true
+    required: true
   },
   employeeName:{
     type:String,
     ref:"employees",
-    required:true,
-    index:true,
+    required:true
   },
   skillName: {
     type: String,
     required: true,
-    trim: true,
-    index: true
+    trim: true
   },
   skillLevel: {
     type: String,
     enum: ['Novice', 'Beginner', 'Competent', 'Proficient', 'Expert'],
-    required: true,
-    index: true
+    required: true
   },
   
 }, {
