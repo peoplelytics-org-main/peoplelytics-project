@@ -55,7 +55,7 @@ export const getAccounts = async (
     const { page, limit } = pagination;
     const skip = (page - 1) * limit;
     const [accounts, total] = await Promise.all([
-      AccountsModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean() as Promise<IAccounts[]>,
+      AccountsModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean().exec() as unknown as Promise<IAccounts[]>,
       AccountsModel.countDocuments(query),
     ]);
     return { data: accounts, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
@@ -115,7 +115,7 @@ export const getAccountsStats = async (AccountsModel: Model<IAccounts>): Promise
     const [total, active, allAccounts] = await Promise.all([
       AccountsModel.countDocuments(),
       AccountsModel.countDocuments({ isActive: true }),
-      AccountsModel.find().lean() as Promise<IAccounts[]>,
+      AccountsModel.find().lean().exec() as unknown as Promise<IAccounts[]>,
     ]);
     const byType: Record<string, number> = {};
     const byCurrency: Record<string, number> = {};

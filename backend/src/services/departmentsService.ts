@@ -87,7 +87,8 @@ export const getDepartments = async (
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .lean() as Promise<IDepartments[]>,
+        .lean()
+        .exec() as unknown as Promise<IDepartments[]>,
       DepartmentsModel.countDocuments(query),
     ]);
 
@@ -191,7 +192,7 @@ export const getDepartmentsStats = async (
     const [total, active, allDepartments] = await Promise.all([
       DepartmentsModel.countDocuments(),
       DepartmentsModel.countDocuments({ isActive: true }),
-      DepartmentsModel.find().lean() as Promise<IDepartments[]>,
+      DepartmentsModel.find().lean().exec() as unknown as Promise<IDepartments[]>,
     ]);
 
     const totalBudget = allDepartments.reduce((sum, dept) => sum + (dept.budget || 0), 0);

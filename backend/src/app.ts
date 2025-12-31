@@ -132,7 +132,7 @@ app.get('/health', (req, res) => {
 });
 
 // Import middleware
-import { protect, restrictTo } from './middleware/authMiddleware';
+import { protect } from './middleware/authMiddleware';
 import { extractOrganizationId, validateOrganizationAccess, checkOrganizationAccess } from './middleware/tenant';
 
 // API routes will be added here

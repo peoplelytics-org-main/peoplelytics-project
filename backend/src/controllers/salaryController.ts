@@ -144,9 +144,14 @@ export const updateSalaryController = async (req: Request, res: Response, next: 
       return res.status(400).json({ errors: errors.array() });
     }
 
+    const salaryId = req.params.salaryId;
+    if (!salaryId) {
+      return res.status(400).json({ success: false, error: 'Salary ID is required' });
+    }
+
     const connection = getOrgConnection(req);
     const SalaryModel = getSalaryModel(connection);
-    const salary = await updateSalary(SalaryModel, req.params.salaryId, req.body);
+    const salary = await updateSalary(SalaryModel, salaryId, req.body);
 
     if (!salary) {
       return res.status(404).json({ success: false, error: 'Salary record not found' });
@@ -170,9 +175,14 @@ export const deleteSalaryController = async (req: Request, res: Response, next: 
       return res.status(400).json({ errors: errors.array() });
     }
 
+    const salaryId = req.params.salaryId;
+    if (!salaryId) {
+      return res.status(400).json({ success: false, error: 'Salary ID is required' });
+    }
+
     const connection = getOrgConnection(req);
     const SalaryModel = getSalaryModel(connection);
-    const deleted = await deleteSalary(SalaryModel, req.params.salaryId);
+    const deleted = await deleteSalary(SalaryModel, salaryId);
 
     if (!deleted) {
       return res.status(404).json({ success: false, error: 'Salary record not found' });

@@ -65,7 +65,7 @@ export const getExpenses = async (
     const { page, limit } = pagination;
     const skip = (page - 1) * limit;
     const [expenses, total] = await Promise.all([
-      ExpensesModel.find(query).sort({ expenseDate: -1 }).skip(skip).limit(limit).lean() as Promise<IExpenses[]>,
+      ExpensesModel.find(query).sort({ expenseDate: -1 }).skip(skip).limit(limit).lean().exec() as unknown as Promise<IExpenses[]>,
       ExpensesModel.countDocuments(query),
     ]);
     return { data: expenses, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
@@ -122,7 +122,7 @@ export const getExpensesStats = async (ExpensesModel: Model<IExpenses>): Promise
   byDepartment: Record<string, number>;
 }> => {
   try {
-    const allExpenses = (await ExpensesModel.find().lean()) as IExpenses[];
+    const allExpenses = await ExpensesModel.find().lean() as unknown as IExpenses[];
     const total = allExpenses.length;
     const totalAmount = allExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
     const averageAmount = total > 0 ? totalAmount / total : 0;

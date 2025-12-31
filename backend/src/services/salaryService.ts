@@ -76,7 +76,8 @@ export const getSalaryRecords = async (
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .lean() as Promise<ISalaryAndCompensation[]>,
+        .lean()
+        .exec() as unknown as Promise<ISalaryAndCompensation[]>,
       SalaryModel.countDocuments(query),
     ]);
 
@@ -194,7 +195,7 @@ export const getSalaryStats = async (
   employeesWithRaises: number;
 }> => {
   try {
-    const allSalaries = (await SalaryModel.find().lean()) as ISalaryAndCompensation[];
+    const allSalaries = await SalaryModel.find().lean() as unknown as ISalaryAndCompensation[];
     
     const total = allSalaries.length;
     const totalSalary = allSalaries.reduce((sum, sal) => sum + (sal.salary || 0), 0);

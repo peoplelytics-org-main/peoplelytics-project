@@ -68,7 +68,7 @@ export const getLeaves = async (
     const { page, limit } = pagination;
     const skip = (page - 1) * limit;
     const [leaves, total] = await Promise.all([
-      LeavesModel.find(query).sort({ startDate: -1 }).skip(skip).limit(limit).lean() as Promise<ILeaves[]>,
+      LeavesModel.find(query).sort({ startDate: -1 }).skip(skip).limit(limit).lean().exec() as unknown as Promise<ILeaves[]>,
       LeavesModel.countDocuments(query),
     ]);
     return { data: leaves, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
@@ -125,7 +125,7 @@ export const getLeavesStats = async (LeavesModel: Model<ILeaves>): Promise<{
   pendingApproval: number;
 }> => {
   try {
-    const allLeaves = (await LeavesModel.find().lean()) as ILeaves[];
+    const allLeaves = await LeavesModel.find().lean() as unknown as ILeaves[];
     const total = allLeaves.length;
     const totalDays = allLeaves.reduce((sum, leave) => sum + (leave.days || 0), 0);
     const averageDays = total > 0 ? totalDays / total : 0;
