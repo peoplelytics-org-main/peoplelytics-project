@@ -33,7 +33,7 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
-// CORS configuration for production (supports multiple origins for Netlify preview deployments)
+// CORS configuration for production (supports multiple origins)
 const allowedOrigins = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
   : process.env.FRONTEND_URL 
