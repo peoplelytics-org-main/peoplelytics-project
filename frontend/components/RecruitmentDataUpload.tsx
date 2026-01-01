@@ -7,6 +7,22 @@ import { CheckCircle, AlertTriangle, UploadCloud, X, Edit, Trash2 } from 'lucide
 import Card, { CardContent, CardHeader, CardTitle } from './ui/Card';
 import { API_BASE_URL } from '@/services/api/baseApi';
 
+const TOKEN_STORAGE_KEY = 'app_auth_token';
+
+// Helper to get auth headers for FormData requests
+const getAuthHeaders = (): HeadersInit => {
+  const headers: HeadersInit = {};
+  try {
+    const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  } catch (e) {
+    console.error('Error getting auth token:', e);
+  }
+  return headers;
+};
+
 interface RecruitmentDataUploadProps {
   onComplete: (data: { positions: JobPosition[], funnels: RecruitmentFunnel[] }) => void;
   organizationId: string;
@@ -171,8 +187,9 @@ const RecruitmentDataUpload: React.FC<RecruitmentDataUploadProps> = ({ onComplet
       // Make API call
       const response = await fetch(API_BASE_URL+"/upload/recruitment-funnels", {
         method: 'POST',
+        headers: getAuthHeaders(),
         body: formData,
-        credentials: 'include', // Important for cookie-based auth
+        credentials: 'include',
       });
       
       const result = await response.json();

@@ -14,6 +14,24 @@ import { Link } from 'react-router-dom';
 // API Base URL from environment variable
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const ORG_API_BASE_URL = `${API_BASE_URL}/organizations`;
+const TOKEN_STORAGE_KEY = 'app_auth_token';
+
+// Helper to get auth headers for fetch calls
+const getAuthHeaders = (includeContentType: boolean = true): HeadersInit => {
+  const headers: HeadersInit = {};
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
+  try {
+    const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  } catch (e) {
+    console.error('Error getting auth token:', e);
+  }
+  return headers;
+};
 
 
 // Props interfaces for the extracted components
@@ -265,7 +283,7 @@ const PackageManagementView: React.FC<PackageManagementViewProps> = ({
         try {
           const response = await fetch(`${ORG_API_BASE_URL}/${orgId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             credentials: 'include',
             body: JSON.stringify({ package: newPackage })
           });
@@ -532,6 +550,7 @@ const UserManagementPage: React.FC = () => {
     const fetchUsers = async (orgId: string) => {
         try {
           const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/allusers`, {
+            headers: getAuthHeaders(),
             credentials: 'include',
           });
           const data = await response.json();
@@ -568,7 +587,7 @@ const UserManagementPage: React.FC = () => {
     
             const response = await fetch(`${ORG_API_BASE_URL}/${editingOrg.id}`, {
               method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
+              headers: getAuthHeaders(),
               credentials: 'include',
               body: JSON.stringify(payload)
             });
@@ -614,8 +633,8 @@ const UserManagementPage: React.FC = () => {
           try {
             const response = await fetch(`${ORG_API_BASE_URL}/add-organization`, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: 'include', // Include cookies for authentication
+              headers: getAuthHeaders(),
+              credentials: 'include',
               body: JSON.stringify(orgData),
             });
     
@@ -660,8 +679,8 @@ const UserManagementPage: React.FC = () => {
             try {
                 const response = await fetch(ORG_API_BASE_URL, {
                     method: 'GET',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include', // Include cookies for authentication
+                    headers: getAuthHeaders(),
+                    credentials: 'include',
                 });
                 const data = await response.json();
                 
@@ -697,7 +716,7 @@ const UserManagementPage: React.FC = () => {
                 // Update existing user
                 const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/users/${userData.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     credentials: 'include',
                     body: JSON.stringify(userData),
                 });
@@ -721,7 +740,7 @@ const UserManagementPage: React.FC = () => {
                 // Add new user
                 const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/add-user`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     credentials: 'include',
                     body: JSON.stringify(userData),
                 });
@@ -760,7 +779,7 @@ const UserManagementPage: React.FC = () => {
             try {
                 const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/hard`, {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     credentials: 'include',
                     body: JSON.stringify({ confirm: 'DELETE' })
                 });
@@ -799,7 +818,7 @@ const UserManagementPage: React.FC = () => {
             try {
                 const response = await fetch(`${ORG_API_BASE_URL}/${organizationId}/delete-user/${userId}`, {
                     method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     credentials: 'include',
                 });
                 console.log({"OrgId":organizationId, "UserId":userId})
@@ -847,14 +866,14 @@ const UserManagementPage: React.FC = () => {
         try {
             const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/activate`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 credentials: 'include',
             });
     
             // Also update the subscription end date
             const updateResponse = await fetch(`${ORG_API_BASE_URL}/${orgId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 credentials: 'include',
                 body: JSON.stringify({ 
                     subscriptionEndDate: newEndDate,
@@ -900,6 +919,7 @@ const UserManagementPage: React.FC = () => {
                 try {
                     const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/deactivate`, {
                         method: 'PATCH',
+                        headers: getAuthHeaders(),
                         credentials: 'include',
                     });
     
@@ -930,12 +950,13 @@ const UserManagementPage: React.FC = () => {
     
                     const response = await fetch(`${ORG_API_BASE_URL}/${orgId}/activate`, {
                         method: 'PATCH',
+                        headers: getAuthHeaders(),
                         credentials: 'include',
                     });
     
                     const updateResponse = await fetch(`${ORG_API_BASE_URL}/${orgId}`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: getAuthHeaders(),
                         credentials: 'include',
                         body: JSON.stringify({
                             subscriptionStartDate: formatDate(today),
@@ -978,7 +999,7 @@ const UserManagementPage: React.FC = () => {
         try {
             const response = await fetch(`${ORG_API_BASE_URL}/${orgId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 credentials: 'include',
                 body: JSON.stringify({ quota: isNaN(numCount) ? 0 : numCount })
             });

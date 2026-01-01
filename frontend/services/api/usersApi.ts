@@ -1,8 +1,16 @@
 // src/services/api/usersApi.ts
 import { User } from '../../types';
 
-// Helper to get the token (adjust based on how you store your auth token)
-const getAuthToken = () => localStorage.getItem('token'); 
+const TOKEN_STORAGE_KEY = 'app_auth_token';
+
+// Helper to get the token from sessionStorage (matching AuthContext)
+const getAuthToken = (): string | null => {
+  try {
+    return sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api') + '/organizations';
 
@@ -12,12 +20,13 @@ export const usersApi = {
    */
   getAllGlobalUsers: async (): Promise<User[]> => {
     const token = getAuthToken();
+    console.log('usersApi.getAllGlobalUsers - token:', token ? 'Present' : 'Not Present');
 
     const response = await fetch(`${API_BASE_URL}/users/global/all`, {
       method: 'GET',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        // Add Authorization header if your backend requires it
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });

@@ -1,6 +1,26 @@
 import { ApiResponse } from './baseApi';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const TOKEN_STORAGE_KEY = 'app_auth_token';
+
+// Helper to get auth token
+const getAuthToken = (): string | null => {
+  try {
+    return sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+// Helper to build headers with auth (for FormData, don't set Content-Type)
+const getAuthHeaders = (): HeadersInit => {
+  const headers: HeadersInit = {};
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+};
 
 export interface UploadResponse {
   created: number;
@@ -22,6 +42,7 @@ export const uploadApi = {
 
       const response = await fetch(`${API_BASE_URL}/upload/employees`, {
         method: 'POST',
+        headers: getAuthHeaders(),
         credentials: 'include',
         body: formData,
       });
@@ -75,6 +96,7 @@ export const uploadApi = {
 
       const response = await fetch(`${API_BASE_URL}/upload/attendance`, {
         method: 'POST',
+        headers: getAuthHeaders(),
         credentials: 'include',
         body: formData,
       });
@@ -123,6 +145,7 @@ export const uploadApi = {
       // Assumes your backend endpoint is /upload/recruitment-funnels
       const response = await fetch(`${API_BASE_URL}/upload/recruitment-funnels`, {
         method: 'POST',
+        headers: getAuthHeaders(),
         credentials: 'include',
         body: formData,
       });
