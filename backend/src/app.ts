@@ -31,6 +31,10 @@ import { logger } from './utils/helpers/logger';
 
 const app = express();
 
+// Trust proxy for Render/Heroku/Railway (required for rate limiting and secure cookies)
+// See: https://expressjs.com/en/guide/behind-proxies.html
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
