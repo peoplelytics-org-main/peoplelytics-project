@@ -19,6 +19,17 @@ export interface ApiResponse<T> {
 }
 
 /**
+ * Get stored auth token from sessionStorage
+ */
+const getAuthToken = (): string | null => {
+  try {
+    return sessionStorage.getItem('app_auth_token');
+  } catch (error) {
+    return null;
+  }
+};
+
+/**
  * Base fetch wrapper with error handling
  */
 export const apiRequest = async <T>(
@@ -32,6 +43,12 @@ export const apiRequest = async <T>(
       ...fetchOptions.headers,
     };
     
+    // Add Authorization header with token (fallback if cookies don't work cross-domain)
+    const token = getAuthToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     // Add organization ID header if provided (for Super Admin viewing other orgs)
     if (organizationId) {
       headers['X-Organization-ID'] = organizationId;
@@ -39,7 +56,7 @@ export const apiRequest = async <T>(
     
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...fetchOptions,
-      credentials: 'include', // Important for cookies
+      credentials: 'include', // Important for cookies (primary auth method)
       headers,
     });
 

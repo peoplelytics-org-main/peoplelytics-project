@@ -43,6 +43,7 @@ const handleResponse = async (response: Response) => {
 
 // Storage key for persisting user data
 const USER_STORAGE_KEY = 'app_user_data';
+const TOKEN_STORAGE_KEY = 'app_auth_token';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // Initialize with stored user data if available (for page reload persistence)
@@ -74,9 +75,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isCheckingAuthRef.current = true;
       setIsLoading(true);
       try {
+        // Get token from storage for Authorization header
+        const token = sessionStorage.getItem('app_auth_token');
+        const headers: HeadersInit = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
         const response = await fetch(`${API_BASE_URL}/auth/me`, {
           method: "GET",
-          credentials: "include"
+          credentials: "include",
+          headers
         });
     
         if (!response.ok) {
@@ -194,9 +203,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
           const data = await handleResponse(response);
           
-          // We get the user data from the API response
+          // We get the user data and token from the API response
           const userData = data.user;
+          const token = data.token; // Get token from response
+          
           setCurrentUser(userData);
+          
+          // Store token for Authorization header (fallback if cookies don't work cross-domain)
+          if (token) {
+              try {
+                  sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+              } catch (error) {
+                  console.warn('Failed to save token to storage:', error);
+              }
+          }
           
           // Persist user data to sessionStorage for page reload persistence
           if (userData) {
@@ -206,8 +226,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   console.warn('Failed to save user to storage:', error);
               }
           }
-          
-          // No token handling needed! The browser stores the httpOnly cookie automatically.
         } catch (error) {
           // Re-throw the error to be caught by the LoginPage component
           throw error; 
@@ -227,9 +245,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } finally {
           // Always clear the user from the client state
           setCurrentUser(null);
-          // Clear stored user data
+          // Clear stored user data and token
           try {
               sessionStorage.removeItem(USER_STORAGE_KEY);
+              sessionStorage.removeItem(TOKEN_STORAGE_KEY);
           } catch (error) {
               console.warn('Failed to clear user from storage:', error);
           }
