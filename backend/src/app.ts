@@ -24,6 +24,7 @@ import expensesRoutes from './routes/expensesRoutes';
 import leavesRoutes from './routes/leavesRoutes';
 import employeeFeedbackRoutes from './routes/employeeFeedbackRoutes';
 import searchRoutes from "./routes/searchRoutes";
+import { logger } from './utils/helpers/logger';
 
 //import { errorHandler } from './middleware/errorHandler';
 //import { logging } from './middleware/logging';
@@ -42,15 +43,30 @@ const allowedOrigins = process.env.CORS_ORIGIN
       ? [] // Production requires explicit CORS_ORIGIN
       : ['http://localhost:3000']; // Development fallback
 
+// Log allowed origins for debugging (only in production)
+if (process.env.NODE_ENV === 'production') {
+  logger.info('CORS Allowed Origins:', allowedOrigins);
+}
+
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Check if origin is in allowed list
-    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+    // Normalize origin (remove trailing slash)
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    
+    // Check if origin is in allowed list (exact match or normalized match)
+    const isAllowed = allowedOrigins.length === 0 || 
+      allowedOrigins.some(allowed => {
+        const normalizedAllowed = allowed.replace(/\/$/, '');
+        return origin === allowed || normalizedOrigin === normalizedAllowed || origin === normalizedAllowed;
+      });
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
+      logger.warn(`CORS blocked origin: ${origin}. Allowed origins: ${allowedOrigins.join(', ')}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
