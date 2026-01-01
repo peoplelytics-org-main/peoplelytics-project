@@ -17,13 +17,24 @@ declare global {
 export const protect = async (req: Request, res: Response, next: NextFunction) => {
   let token;
 
+  // Debug logging for production
+  console.log('Auth Debug:', {
+    hasCookie: !!req.cookies?.token,
+    hasAuthHeader: !!req.headers.authorization,
+    authHeaderPrefix: req.headers.authorization?.substring(0, 20),
+    path: req.path
+  });
+
   if (req.cookies.token) {
     token = req.cookies.token;
+    console.log('Using cookie token');
   } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     token = req.headers.authorization.split(" ")[1];
+    console.log('Using Authorization header token');
   }
 
   if (!token) {
+    console.log('No token found in cookies or Authorization header');
     return res.status(401).json({ message: "Not authorized, no token" });
   }
 

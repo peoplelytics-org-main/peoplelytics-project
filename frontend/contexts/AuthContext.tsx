@@ -77,16 +77,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         // Get token from storage for Authorization header
         const token = sessionStorage.getItem('app_auth_token');
+        console.log('Auth check - token from storage:', token ? `${token.substring(0, 20)}...` : 'null');
+        
         const headers: HeadersInit = {};
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
+        
+        console.log('Auth check - sending request with headers:', Object.keys(headers));
         
         const response = await fetch(`${API_BASE_URL}/auth/me`, {
           method: "GET",
           credentials: "include",
           headers
         });
+        
+        console.log('Auth check - response status:', response.status);
     
         if (!response.ok) {
           // If rate limited, don't keep retrying - just set loading to false

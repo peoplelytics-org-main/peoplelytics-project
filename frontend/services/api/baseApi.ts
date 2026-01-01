@@ -45,6 +45,7 @@ export const apiRequest = async <T>(
     
     // Add Authorization header with token (fallback if cookies don't work cross-domain)
     const token = getAuthToken();
+    console.log(`API Request [${endpoint}] - token:`, token ? `${token.substring(0, 20)}...` : 'null');
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
