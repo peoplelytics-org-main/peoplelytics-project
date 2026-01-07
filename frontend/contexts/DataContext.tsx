@@ -987,6 +987,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
 
     const organization = allOrganizations.find((o) => o.id === orgId);
 
+    console.log('🔍 DataContext Filter Debug:', {
+      orgId,
+      organizationExists: !!organization,
+      totalAttendance: allAttendanceData.length,
+      filteredAttendance: allAttendanceData.filter(a => a.organizationId === orgId).length,
+      sampleAttendanceOrgId: allAttendanceData[0]?.organizationId,
+      targetOrgId: orgId,
+      totalJobPositions: allJobPositions.length,
+      filteredJobPositions: allJobPositions.filter(j => j.organizationId === orgId).length,
+      sampleJobPositionOrgId: allJobPositions[0]?.organizationId,
+  });
+
     if (!orgId || !organization) {
       return {
         employeeData: [],

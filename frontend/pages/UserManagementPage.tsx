@@ -226,6 +226,8 @@ const OrgAdminView: React.FC<OrgAdminViewProps> = ({
     openUserModal,
     deleteUser,
 }) => {
+
+    
     const orgUsers = useMemo(() => users.filter(u => u.organizationId === currentUser?.organizationId && u.id !== currentUser.id), [users, currentUser]);
     
     const filteredUsers = useMemo(() => {
@@ -235,6 +237,8 @@ const OrgAdminView: React.FC<OrgAdminViewProps> = ({
         const lowercasedSearch = searchTerm.toLowerCase();
         return orgUsers.filter(u => u.username.toLowerCase().includes(lowercasedSearch));
     }, [searchTerm, orgUsers]);
+
+    
 
     return (
         <Card>

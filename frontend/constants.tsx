@@ -87,7 +87,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Reports Hub', href: '/app/reports', icon: FilePieChart, roles: ['Org Admin', 'HR Analyst', 'Executive'], description: 'Access detailed reports and visualizations.' },
   { name: 'Employee Metrics', href: '/app/employee-metrics', icon: Calculator, roles: ['Org Admin', 'HR Analyst'], description: 'Calculate key employee-related metrics.', featureFlag: 'hasEmployeeMetrics' },
   { name: 'HR Metrics', href: '/app/hr-metrics', icon: BarChart3, roles: ['Org Admin', 'HR Analyst'], description: 'Calculate strategic HR and operational metrics.', featureFlag: 'hasHRMetrics' },
-  { name: 'ROI Analyzer', href: '/app/roi-analyzer', icon: TrendingUp, roles: ['Org Admin', 'HR Analyst'], description: 'Build business cases for HR initiatives.', featureFlag: 'hasROIAnalyzer' },
+//   { name: 'ROI Analyzer', href: '/app/roi-analyzer', icon: TrendingUp, roles: ['Org Admin', 'HR Analyst'], description: 'Build business cases for HR initiatives.', featureFlag: 'hasROIAnalyzer' },
   { name: 'Predictive Analytics', href: '/app/predictive-analytics', icon: Lightbulb, roles: ['Org Admin', 'HR Analyst'], description: 'Use AI to forecast HR outcomes.', featureFlag: 'hasPredictiveAnalytics' },
   { name: 'AI Assistant', href: '/app/ai-assistant', icon: Lightbulb, roles: ['Org Admin', 'HR Analyst', 'Executive'], description: 'Chat with an AI to get data insights.', featureFlag: 'hasAIAssistant' },
   { name: 'Customization', href: '/app/customization', icon: Settings, roles: ['Org Admin'], description: 'Customize dashboard and application settings.', featureFlag: 'hasCustomization' },
