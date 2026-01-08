@@ -54,13 +54,33 @@ import * as hrCalculations from '../services/hrCalculations';
 
 // Import constants and types
 import { AVAILABLE_WIDGETS } from '../constants';
-import { FileWarning, Users, TrendingDown, Clock, Activity, BarChart2, X, Filter, BrainCircuit, Building } from 'lucide-react';
+import { FileWarning, Users, TrendingDown, Clock, Activity, BarChart2, X, Filter, BrainCircuit, Building, AlertCircle, Upload } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCurrency } from '../hooks/useCurrency';
 import type { Employee } from '../types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement, Filler, ChartDataLabels);
 
+// Reusable No Data Placeholder Component
+const NoDataPlaceholder: React.FC<{ title: string; dataType: string }> = ({ title, dataType }) => (
+    <Card className="h-full">
+        <CardHeader>
+            <CardTitle className="text-base">{title}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center h-48 text-center">
+            <AlertCircle className="h-10 w-10 text-amber-500 mb-3" />
+            <p className="text-sm font-medium text-text-primary">No Data Available</p>
+            <p className="text-xs text-text-secondary mt-1">
+                {dataType} data has not been uploaded yet.
+            </p>
+            <Link to="/app/data-management" className="mt-3">
+                <Button variant="secondary" size="sm" className="flex items-center gap-1">
+                    <Upload className="h-3 w-3" /> Upload Data
+                </Button>
+            </Link>
+        </CardContent>
+    </Card>
+);
 
 const DashboardPage: React.FC = () => {
     // ... (All hooks and state remain the same) ...
@@ -487,6 +507,12 @@ const DashboardPage: React.FC = () => {
 
     const renderWidget = (widgetId: string) => {
         const onHover = (e: ChartEvent, el: ActiveElement[], chart: Chart) => chart.canvas.style.cursor = el.length > 0 ? 'pointer' : 'default';
+        
+        // Check for data availability before rendering specific widgets
+        const hasAttendanceData = attendanceData.length > 0;
+        const hasRecruitmentData = recruitmentFunnels.length > 0;
+        const hasJobPositionsData = jobPositions.length > 0;
+        
         switch (widgetId) {
             case 'ai_story': return <AIStoryCard filteredData={activeFilteredData} metrics={metrics} filters={filters} />;
             case 'key_driver_analysis': return <KeyDriverAnalysisWidget filteredData={filteredData} />;
@@ -511,8 +537,12 @@ const DashboardPage: React.FC = () => {
                 return percentage > 5 ? `${percentage.toFixed(2)}%` : '';
             } }}}}/>;
             case 'turnover_by_dept': return <TurnoverByDeptWidget data={{labels: metrics.turnoverByDept.map(d => d.name), datasets: [{ label: 'Leavers', data: metrics.turnoverByDept.map(d => d.value), backgroundColor: '#ec4899' }]}} options={{...baseChartOptions, indexAxis: 'y', onClick: handleDepartmentChartClick(metrics.turnoverByDept), onHover: handleInteractiveChartHover, plugins: {...baseChartOptions.plugins, tooltip: {...baseChartOptions.plugins.tooltip, callbacks: {label: (context: any) => { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.x !== null) { label += context.parsed.x; } return label; }}}, datalabels: { display: true, color: '#fff', anchor: 'center', align: 'center' }}}}/>;
-            case 'attendance_trend': return <AttendanceTrendWidget data={{labels: metrics.attendanceTrend.map(d => d.name), datasets: [{ label: 'Absences', data: metrics.attendanceTrend.map(d => d.value), borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.2)', fill: true, tension: 0.3 }]}} options={baseChartOptions}/>;
-            case 'recruitment_funnel': return <RecruitmentFunnelWidget data={{labels: ['Shortlisted', 'Interviewed', 'Offers', 'Accepted', 'Joined'], datasets: [{ label: 'Count', data: Object.values(metrics.recruitmentFunnel), backgroundColor: '#10b981' }]}} options={{...baseChartOptions, plugins: {...baseChartOptions.plugins, datalabels: { display: true, color: '#fff' }}}}/>;
+            case 'attendance_trend': 
+                if (!hasAttendanceData) return <NoDataPlaceholder title="Attendance Trend" dataType="Attendance" />;
+                return <AttendanceTrendWidget data={{labels: metrics.attendanceTrend.map(d => d.name), datasets: [{ label: 'Absences', data: metrics.attendanceTrend.map(d => d.value), borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.2)', fill: true, tension: 0.3 }]}} options={baseChartOptions}/>;
+            case 'recruitment_funnel': 
+                if (!hasRecruitmentData) return <NoDataPlaceholder title="Recruitment Funnel" dataType="Recruitment" />;
+                return <RecruitmentFunnelWidget data={{labels: ['Shortlisted', 'Interviewed', 'Offers', 'Accepted', 'Joined'], datasets: [{ label: 'Count', data: Object.values(metrics.recruitmentFunnel), backgroundColor: '#10b981' }]}} options={{...baseChartOptions, plugins: {...baseChartOptions.plugins, datalabels: { display: true, color: '#fff' }}}}/>;
             case 'succession_gaps': return <SuccessionGapsWidget gaps={metrics.successionGaps} />;
             case 'burnout_hotspots': return <BurnoutHotspotsWidget data={{labels: metrics.burnoutHotspots.map(d => d.department), datasets: [{label: 'Avg Risk Score', data: metrics.burnoutHotspots.map(d => d.averageRiskScore), backgroundColor: metrics.burnoutHotspots.map(d => d.averageRiskScore > 65 ? '#ef4444' : d.averageRiskScore > 40 ? '#f59e0b' : '#22c55e')}]}} options={{...baseChartOptions, indexAxis: 'y', plugins: {...baseChartOptions.plugins, legend: { display: false }, tooltip: { ...baseChartOptions.plugins.tooltip, callbacks: { label: (context: any) => { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.x !== null) { label += context.parsed.x.toFixed(2); } return label; } } }, datalabels: { display: true, color: '#fff', anchor: 'center', align: 'center', font: { weight: 'bold' }, formatter: (value: any) => value.toFixed(2)}}, scales: { x: { beginAtZero: true, max: 100 }}}} />;
             case 'retention_by_dept': return <RetentionByDeptWidget data={{labels: metrics.retentionByDept.map(d => d.name), datasets:[{ label: 'Retention Rate', data: metrics.retentionByDept.map(d => d.value), backgroundColor: '#22c55e'}]}} options={{...baseChartOptions, indexAxis: 'y', scales: {...baseChartOptions.scales, x: { ...baseChartOptions.scales.x, ticks: { callback: (v: any) => `${Number(v).toFixed(0)}%` }}}, plugins: {...baseChartOptions.plugins, tooltip: { callbacks: { label: (ctx: any) => `${ctx.dataset.label}: ${ctx.formattedValue}%`}}, datalabels: { display: true, color: '#fff', formatter: (v: any) => `${Number(v).toFixed(2)}` }}}} />;
@@ -522,8 +552,12 @@ const DashboardPage: React.FC = () => {
             case 'performance_calibration': return <PerformanceCalibrationWidget calibrationData={metrics.performanceCalibration} calibrationCounts={metrics.performanceCalibrationCounts} baseChartOptions={baseChartOptions} textPrimaryColor={textPrimaryColor} onClick={handleCalibrationChartClick} onHover={handleInteractiveChartHover} />;
             case 'nine_box_grid': return <ChartCard title="9-Box Grid (Full View)" description="Detailed talent segmentation."><NineBoxGrid data={metrics.nineBoxGrid} /></ChartCard>;
             case 'manager_performance': return <ManagerPerformanceWidget managerPerformance={metrics.managerPerformance} baseChartOptions={baseChartOptions} textPrimaryColor={textPrimaryColor} gridColor={gridColor} borderColor={borderColor} onClick={handleManagerPerformanceClick} onHover={handleInteractiveChartHover} />;
-            case 'open_pos_by_dept': return <OpenPosByDeptWidget data={{labels: metrics.openPosByDept.map(d => d.department), datasets: [{ label: 'Replacement', data: metrics.openPosByDept.map(d => d.replacement), backgroundColor: '#3b82f6' }, { label: 'New (Budgeted)', data: metrics.openPosByDept.map(d => d.newBudgeted), backgroundColor: '#22c55e' }, { label: 'New (Non-Budgeted)', data: metrics.openPosByDept.map(d => d.newNonBudgeted), backgroundColor: '#f97316' }]}} options={{...baseChartOptions, indexAxis: 'y', scales: { x: { stacked: true }, y: { stacked: true }}, plugins: {...baseChartOptions.plugins, tooltip: {...baseChartOptions.plugins.tooltip, callbacks: {label: (context: any) => {const label = context.dataset.label || ''; const value = context.parsed.x; if (label && value != null) { return `${label}: ${value}`; } return ''; }, footer: (tooltipItems: any[]) => {if (!tooltipItems || tooltipItems.length === 0) return ''; const dataIndex = tooltipItems[0].dataIndex; let total = 0; tooltipItems[0].chart.data.datasets.forEach((dataset: any) => { const value = dataset.data[dataIndex]; if (typeof value === 'number') { total += value; }}); return `Total: ${total}`; }}}, datalabels: { display: true, color: '#fff', formatter: (v: any) => v > 0 ? v : '' }}}}/>;
-            case 'open_pos_by_title': const topTitles = metrics.openPosByTitle.slice(0, 15); return <OpenPosByTitleWidget data={{labels: topTitles.map(d => d.title), datasets: [{ label: 'Replacement', data: topTitles.map(d => d.replacement), backgroundColor: '#3b82f6' }, { label: 'New (Budgeted)', data: topTitles.map(d => d.newBudgeted), backgroundColor: '#22c55e' }, { label: 'New (Non-Budgeted)', data: topTitles.map(d => d.newNonBudgeted), backgroundColor: '#f97316' }]}} options={{...baseChartOptions, indexAxis: 'y', scales: { x: { stacked: true }, y: { stacked: true }}, plugins: {...baseChartOptions.plugins, tooltip: {...baseChartOptions.plugins.tooltip, callbacks: {label: (context: any) => {const label = context.dataset.label || ''; const value = context.parsed.x; if (label && value != null) { return `${label}: ${value}`; } return ''; }, footer: (tooltipItems: any[]) => {if (!tooltipItems || tooltipItems.length === 0) return ''; const dataIndex = tooltipItems[0].dataIndex; let total = 0; tooltipItems[0].chart.data.datasets.forEach((dataset: any) => { const value = dataset.data[dataIndex]; if (typeof value === 'number') { total += value; }}); return `Total: ${total}`; }}}, datalabels: { display: true, color: '#fff', formatter: (v: any) => v > 0 ? v : '' }}}}/>;
+            case 'open_pos_by_dept': 
+                if (!hasJobPositionsData) return <NoDataPlaceholder title="Open Positions by Department" dataType="Recruitment/Job Positions" />;
+                return <OpenPosByDeptWidget data={{labels: metrics.openPosByDept.map(d => d.department), datasets: [{ label: 'Replacement', data: metrics.openPosByDept.map(d => d.replacement), backgroundColor: '#3b82f6' }, { label: 'New (Budgeted)', data: metrics.openPosByDept.map(d => d.newBudgeted), backgroundColor: '#22c55e' }, { label: 'New (Non-Budgeted)', data: metrics.openPosByDept.map(d => d.newNonBudgeted), backgroundColor: '#f97316' }]}} options={{...baseChartOptions, indexAxis: 'y', scales: { x: { stacked: true }, y: { stacked: true }}, plugins: {...baseChartOptions.plugins, tooltip: {...baseChartOptions.plugins.tooltip, callbacks: {label: (context: any) => {const label = context.dataset.label || ''; const value = context.parsed.x; if (label && value != null) { return `${label}: ${value}`; } return ''; }, footer: (tooltipItems: any[]) => {if (!tooltipItems || tooltipItems.length === 0) return ''; const dataIndex = tooltipItems[0].dataIndex; let total = 0; tooltipItems[0].chart.data.datasets.forEach((dataset: any) => { const value = dataset.data[dataIndex]; if (typeof value === 'number') { total += value; }}); return `Total: ${total}`; }}}, datalabels: { display: true, color: '#fff', formatter: (v: any) => v > 0 ? v : '' }}}}/>;
+            case 'open_pos_by_title': 
+                if (!hasJobPositionsData) return <NoDataPlaceholder title="Open Positions by Title" dataType="Recruitment/Job Positions" />;
+                const topTitles = metrics.openPosByTitle.slice(0, 15); return <OpenPosByTitleWidget data={{labels: topTitles.map(d => d.title), datasets: [{ label: 'Replacement', data: topTitles.map(d => d.replacement), backgroundColor: '#3b82f6' }, { label: 'New (Budgeted)', data: topTitles.map(d => d.newBudgeted), backgroundColor: '#22c55e' }, { label: 'New (Non-Budgeted)', data: topTitles.map(d => d.newNonBudgeted), backgroundColor: '#f97316' }]}} options={{...baseChartOptions, indexAxis: 'y', scales: { x: { stacked: true }, y: { stacked: true }}, plugins: {...baseChartOptions.plugins, tooltip: {...baseChartOptions.plugins.tooltip, callbacks: {label: (context: any) => {const label = context.dataset.label || ''; const value = context.parsed.x; if (label && value != null) { return `${label}: ${value}`; } return ''; }, footer: (tooltipItems: any[]) => {if (!tooltipItems || tooltipItems.length === 0) return ''; const dataIndex = tooltipItems[0].dataIndex; let total = 0; tooltipItems[0].chart.data.datasets.forEach((dataset: any) => { const value = dataset.data[dataIndex]; if (typeof value === 'number') { total += value; }}); return `Total: ${total}`; }}}, datalabels: { display: true, color: '#fff', formatter: (v: any) => v > 0 ? v : '' }}}}/>;
             case 'turnover_by_job_title': return <TurnoverByJobTitleWidget data={{labels: metrics.turnoverByJobTitle.slice(0, 10).map(d => d.name), datasets:[{ label: 'Leavers', data: metrics.turnoverByJobTitle.slice(0, 10).map(d => d.value), backgroundColor: '#3b82f6'}]}} options={{...baseChartOptions, onClick: handleTurnoverByJobTitleClick, onHover, indexAxis: 'y', plugins: {...baseChartOptions.plugins, tooltip: {...baseChartOptions.plugins.tooltip, callbacks: {label: (context: any) => { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.x !== null) { label += context.parsed.x; } return label; }}}, datalabels: { display: true, color: '#fff' }}}}/>;
             case 'turnover_by_location': return <TurnoverByLocationWidget data={{labels: metrics.turnoverByLocation.map(d => d.name), datasets: [{ label: 'Leavers', data: metrics.turnoverByLocation.map(d => d.value), backgroundColor: '#ec4899'}]}} options={{...baseChartOptions, plugins: {...baseChartOptions.plugins, datalabels: { display: true, color: '#fff' }}}}/>;
             case 'talent_risk_matrix': return <TalentRiskMatrixView />;
