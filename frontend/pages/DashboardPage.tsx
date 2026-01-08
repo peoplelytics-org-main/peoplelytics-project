@@ -68,7 +68,7 @@ const DashboardPage: React.FC = () => {
     const { currentUser } = useAuth();
     const { widgetConfigs, setAllWidgetSizes, resetWidgetSizesToDefault } = useDashboardConfig();
     const { mode } = useTheme();
-    const { formatCompact } = useCurrency();
+    const { format, formatCompact, currency } = useCurrency();
     const navigate = useNavigate();
 
     const DASHBOARD_FILTERS_KEY = 'dashboardFilters';
