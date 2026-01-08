@@ -9,6 +9,14 @@ export interface AttendanceQueryFilters {
   endDate?: string;
 }
 
+// At the top of the file, update or add this interface
+export interface BulkOperationResult {
+  created: number;
+  updated: number;
+  failed: number;
+  errors: string[];
+}
+
 export interface PaginationOptions {
   page: number;
   limit: number;
@@ -184,37 +192,74 @@ export const deleteAttendance = async (
 /**
  * Bulk create attendance records
  */
+/**
+ * Bulk create/update attendance records (UPSERT) - Optimized version
+ */
+/**
+ * Bulk create/update attendance records (UPSERT)
+ * FIX: Matches by EmployeeID + Date instead of ID to prevent duplicates
+ */
 export const bulkCreateAttendance = async (
   AttendanceModel: Model<IAttendance>,
   records: Partial<IAttendance>[]
-): Promise<{ created: number; failed: number; errors: string[] }> => {
+): Promise<{ created: number; updated: number; failed: number; errors: string[] }> => {
   try {
     const errors: string[] = [];
-    let created = 0;
-    let failed = 0;
-
-    for (const recordData of records) {
-      try {
-        // Check if record already exists
-        const existing = await AttendanceModel.findOne({ attendanceId: recordData.attendanceId });
-        if (existing) {
-          errors.push(`Attendance record ${recordData.attendanceId} already exists`);
-          failed++;
-          continue;
-        }
-
-        const record = new AttendanceModel(recordData);
-        await record.save();
-        created++;
-      } catch (error: any) {
-        errors.push(`Failed to create attendance record ${recordData.attendanceId}: ${error.message}`);
-        failed++;
+    
+    // 1. Validation: Ensure we have the "Natural Keys" (Employee + Date) instead of attendanceId
+    const validRecords = records.filter(record => {
+      // Assuming your model uses 'date_time_in' for the date
+      if (!record.employeeId || !record.date_time_in) {
+        errors.push(`Record missing 'employeeId' or 'date_time_in'`);
+        return false;
       }
+      return true;
+    });
+
+    if (validRecords.length === 0) {
+      return { created: 0, updated: 0, failed: records.length, errors };
     }
 
-    return { created, failed, errors };
-  } catch (error) {
+    // 2. Bulk Operation with Natural Key Filter
+    const bulkOps = validRecords.map(recordData => ({
+      updateOne: {
+        // FIX: Filter by Employee + Date. 
+        // This ensures if a record exists for this person on this day, it updates it.
+        // If it doesn't exist, it creates a new one.
+        filter: { 
+          employeeId: recordData.employeeId, 
+          date_time_in: recordData.date_time_in 
+        },
+        update: { $set: recordData },
+        upsert: true, 
+      },
+    }));
+
+    const result = await AttendanceModel.bulkWrite(bulkOps, { ordered: false });
+
+    return {
+      created: result.upsertedCount || 0,
+      updated: result.modifiedCount || 0,
+      failed: errors.length,
+      errors,
+    };
+  } catch (error: any) {
     logger.error('Error in bulk create attendance:', error);
+    
+    if (error.writeErrors) {
+      const writeErrors = error.writeErrors as any[];
+      writeErrors.forEach((err: any) => {
+        errors.push(`Record ${err.index}: ${err.errmsg}`);
+      });
+      
+      return {
+        created: error.result?.nUpserted || 0,
+        updated: error.result?.nModified || 0,
+        failed: writeErrors.length,
+        errors,
+      };
+    }
+    
     throw error;
   }
 };

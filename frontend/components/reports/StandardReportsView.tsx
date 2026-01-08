@@ -138,6 +138,7 @@ const skillLevelColors: Record<SkillLevel, string> = {
 
 const StandardReportsView: React.FC = () => {
     const { displayedData, attendanceData, jobPositions, recruitmentFunnels } = useData();
+    
     const { mode, currency, theme } = useTheme();
     const { format } = useCurrency();
     const { skillScarcityKey } = useReportSettings();
@@ -1285,6 +1286,200 @@ const StandardReportsView: React.FC = () => {
                             </ChartCard>
                         </div>
                     )}
+                    {activeReport === 'skillset' && (
+                <div className="space-y-6">
+                    <div className="border-b border-border">
+                        <nav className="-mb-px flex space-x-4 overflow-x-auto">
+                            <button onClick={() => setSkillsetTab('matrix')} className={`py-2 px-3 text-sm font-medium rounded-t-md transition-colors ${skillsetTab === 'matrix' ? 'border-b-2 border-primary-500 text-primary-400' : 'text-text-secondary hover:bg-border'}`}>
+                                Skill Matrix
+                            </button>
+                            <button onClick={() => setSkillsetTab('advanced')} className={`py-2 px-3 text-sm font-medium rounded-t-md transition-colors ${skillsetTab === 'advanced' ? 'border-b-2 border-primary-500 text-primary-400' : 'text-text-secondary hover:bg-border'}`}>
+                                Advanced Analytics
+                            </button>
+                            <button onClick={() => setSkillsetTab('gap_analysis')} className={`py-2 px-3 text-sm font-medium rounded-t-md transition-colors ${skillsetTab === 'gap_analysis' ? 'border-b-2 border-primary-500 text-primary-400' : 'text-text-secondary hover:bg-border'}`}>
+                                Skill Gap Analysis
+                            </button>
+                        </nav>
+                    </div>
+                    
+                    {SkillFilterControls}
+
+                    {skillsetTab === 'matrix' && (
+                        chartData.skillset.kpis.uniqueSkillCount === 0 ? (
+                            <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed border-border rounded-lg bg-card/30">
+                                <div className="p-6 bg-background rounded-full border border-border mb-4 shadow-sm">
+                                    <BrainCircuit className="h-10 w-10 text-text-secondary opacity-50" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-text-primary mb-2">No Skill Data Found</h3>
+                                <p className="text-text-secondary text-center max-w-md">
+                                    No skills have been recorded for the active employees. Add skills to employee profiles to see the matrix.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                    <MetricCard title="Unique Skills" value={chartData.skillset.kpis.uniqueSkillCount.toString()} icon={<BrainCircuit className="h-5 w-5"/>} />
+                                    <MetricCard title="Most Common Skill" value={chartData.skillset.kpis.mostCommonSkill} icon={<Users className="h-5 w-5"/>} />
+                                    <MetricCard title="Top Expert Skill" value={chartData.skillset.kpis.topExpertSkill} icon={<Star className="h-5 w-5 text-yellow-400"/>} />
+                                    <MetricCard title="Most Skilled Department" value={chartData.skillset.kpis.mostSkilledDepartment} icon={<Briefcase className="h-5 w-5"/>} />
+                                </div>
+                                <ChartCard title="Skill Matrix" description="Distribution of skills and proficiency levels across the organization. Click a cell to view employees.">
+                                    <SkillScarcityLegend />
+                                    <SkillMatrix data={chartData.skillset.matrix} onCellClick={handleSkillCellClick} />
+                                </ChartCard>
+                            </div>
+                        )
+                    )}
+
+                    {skillsetTab === 'advanced' && (
+                         chartData.skillset.kpis.uniqueSkillCount === 0 ? (
+                             <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed border-border rounded-lg bg-card/30">
+                                <div className="p-6 bg-background rounded-full border border-border mb-4 shadow-sm">
+                                    <BrainCircuit className="h-10 w-10 text-text-secondary opacity-50" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-text-primary mb-2">No Skill Data Found</h3>
+                                <p className="text-text-secondary text-center max-w-md">
+                                    Advanced analytics require skill data. Please update employee profiles.
+                                </p>
+                            </div>
+                         ) : (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-yellow-400" /> At-Risk Skills</CardTitle>
+                                            <CardDescription>Critical skills held by 3 or fewer employees. Click a row to see who.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="overflow-x-auto max-h-96">
+                                                <table className="w-full text-sm">
+                                                    <thead className="text-xs text-text-primary uppercase sticky top-0 bg-card"><tr>
+                                                        <th className="py-2 px-4 text-left">Skill Name</th>
+                                                        <th className="py-2 px-4 text-center">Employee Count</th>
+                                                        <th className="py-2 px-4 text-center">High Flight Risk</th>
+                                                    </tr></thead>
+                                                    <tbody>
+                                                        {chartData.skillset.atRiskSkills.map(skill => (
+                                                            <tr key={skill.skillName} className="border-b border-border hover:bg-border/50 cursor-pointer" onClick={() => setEmployeeListModal({isOpen: true, title: `Employees with skill: ${skill.skillName}`, description: '', employees: skill.employees})}>
+                                                                <td className="py-2 px-4 font-semibold text-text-primary">{skill.skillName}</td>
+                                                                <td className="py-2 px-4 text-center font-semibold text-text-primary">{skill.employees.length}</td>
+                                                                <td className={`py-2 px-4 text-center font-bold ${skill.highRiskEmployeeCount > 0 ? 'text-red-400' : 'text-text-primary'}`}>{skill.highRiskEmployeeCount}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                                {chartData.skillset.atRiskSkills.length === 0 && <p className="text-center text-text-secondary py-8">No skills identified as "at-risk".</p>}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                    <ChartCard title="Top Skills by Proficiency" description="Average proficiency level for the 15 most common skills.">
+                                        <SkillScarcityLegend />
+                                        <div className="h-96">
+                                            <Bar 
+                                                data={{
+                                                    labels: chartData.skillset.skillProficiencyMetrics.slice(0, 15).map(s => s.skillName),
+                                                    datasets: [{
+                                                        label: 'Avg. Proficiency (1-5)',
+                                                        data: chartData.skillset.skillProficiencyMetrics.slice(0, 15).map(s => s.avgProficiency),
+                                                        backgroundColor: (context: ScriptableContext<'bar'>) => {
+                                                            if (!context.chart.data.labels) return 'grey';
+                                                            const skillName = context.chart.data.labels[context.dataIndex] as string;
+                                                            const count = chartData.skillset.matrix[skillName]?.total.length || 0;
+                                                            return getSkillScarcityColor(count, 0.8);
+                                                        },
+                                                    }]
+                                                }}
+                                                options={{
+                                                    ...baseChartOptions,
+                                                    indexAxis: 'y',
+                                                    scales: { x: { min: 1, max: 5 } },
+                                                    plugins: {
+                                                        ...baseChartOptions.plugins,
+                                                        datalabels: { ...dataLabelsConfig, color: '#fff', formatter: (value) => value.toFixed(2) }
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </ChartCard>
+                                    <ChartCard title="Skill Impact on Performance" description="How proficiency in a skill correlates with performance ratings.">
+                                        <div className="mb-4">
+                                            <select value={selectedImpactSkill} onChange={e => setSelectedImpactSkill(e.target.value)} className="w-full bg-background border border-border rounded-md px-3 py-2 text-text-primary focus:ring-2 focus:ring-primary-500 focus:outline-none">
+                                                {chartData.skillset.skillDensity.skills.map(skill => <option key={skill} value={skill}>{skill}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="h-80">
+                                            <Bar 
+                                                data={{
+                                                    labels: chartData.skillset.skillImpactOnPerformance.map(s => s.level),
+                                                    datasets: [{
+                                                        label: 'Avg. Performance Rating',
+                                                        data: chartData.skillset.skillImpactOnPerformance.map(s => s.avgPerformance > 0 ? s.avgPerformance : undefined),
+                                                        backgroundColor: Object.values(skillLevelColors)
+                                                    }]
+                                                }}
+                                                options={{
+                                                    ...baseChartOptions,
+                                                    scales: {y: { min: 1, max: 5 }},
+                                                    plugins: { ...baseChartOptions.plugins, datalabels: { ...dataLabelsConfig, color: '#fff', formatter: (value) => value.toFixed(2) } }
+                                                }}
+                                            />
+                                        </div>
+                                    </ChartCard>
+                                    <ChartCard title="Top Skills of High Performers" description="Most common skills among employees with performance rating 4 or 5.">
+                                        <SkillScarcityLegend />
+                                        <div className="h-96">
+                                            <Bar 
+                                                data={{
+                                                    labels: chartData.skillset.highPerformerSkills.slice(0, 15).map(s => s.skillName),
+                                                    datasets: [{
+                                                        label: 'Count among High Performers',
+                                                        data: chartData.skillset.highPerformerSkills.slice(0, 15).map(s => s.count),
+                                                        backgroundColor: (context: ScriptableContext<'bar'>) => {
+                                                            if (!context.chart.data.labels) return 'grey';
+                                                            const skillName = context.chart.data.labels[context.dataIndex] as string;
+                                                            const count = chartData.skillset.matrix[skillName]?.total.length || 0;
+                                                            return getSkillScarcityColor(count, 0.8);
+                                                        },
+                                                    }]
+                                                }}
+                                                options={{ ...baseChartOptions, indexAxis: 'y', plugins: { ...baseChartOptions.plugins, datalabels: { ...dataLabelsConfig, color: '#fff' } } }}
+                                            />
+                                        </div>
+                                    </ChartCard>
+                                </div>
+                                <ChartCard title="Skill Density by Department" description="Percentage of employees in each department possessing key skills.">
+                                    <SkillScarcityLegend />
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-xs text-left border-collapse min-w-[800px]">
+                                            <thead><tr>
+                                                <th className="p-2 border border-border bg-card sticky left-0 z-10 text-text-primary">Department</th>
+                                                {chartData.skillset.skillDensity.skills.map(skill => <th key={skill} className="p-2 border border-border bg-card text-center text-text-primary">{skill}</th>)}
+                                            </tr></thead>
+                                            <tbody>{chartData.skillset.skillDensity.datasets.map(dept => {
+                                                const deptDataset = chartData.skillset.skillDensity.datasets.find(d => d.department === dept.department);
+                                                return (
+                                                    <tr key={dept.department}><td className="p-2 border border-border font-semibold bg-card sticky left-0 z-10 whitespace-nowrap text-text-primary">{dept.department}</td>
+                                                        {chartData.skillset.skillDensity.skills.map((skill, skillIndex) => {
+                                                            const density = deptDataset ? deptDataset.data[skillIndex] : 0;
+                                                            const totalCount = chartData.skillset.matrix[skill]?.total.length || 0;
+                                                            const baseRgbaColor = getSkillScarcityColor(totalCount, 1);
+                                                            const rgb = baseRgbaColor.match(/\(([^)]+)\)/)?.[1].split(',').slice(0,3).join(',');
+                                                            const opacity = density > 0 ? Math.max(0.3, density / 100) : 0;
+                                                            const color = `rgba(${rgb}, ${opacity})`;
+                                                            return (<td key={skill} className="p-2 border border-border text-center font-semibold text-text-primary" style={{backgroundColor: density > 0 ? color : 'transparent'}}>
+                                                                {density > 0 ? `${density.toFixed(0)}%` : '-'}
+                                                            </td>);
+                                                        })}
+                                                    </tr>
+                                                );
+                                            })}</tbody>
+                                        </table>
+                                    </div>
+                                </ChartCard>
+                            </div>
+                        )
+                    )}
+
                     {skillsetTab === 'gap_analysis' && (
                         <div className="space-y-6">
                             <Card>
@@ -1383,161 +1578,179 @@ const StandardReportsView: React.FC = () => {
                     )}
                 </div>
             )}
-            
-            {/* Recruitment Report */}
-            {activeReport === 'recruitment' && (
-                 <div className="space-y-6">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                        <MetricCard title="Open Positions" value={chartData.recruitment.kpis.openPositions.toString()} icon={<FolderOpen className="h-5 w-5"/>} />
-                        <MetricCard title="Positions on Hold" value={chartData.recruitment.kpis.onHoldPositions.toString()} icon={<PauseCircle className="h-5 w-5"/>} />
-                        <MetricCard title="Avg. Age of Open Positions" value={`${chartData.recruitment.kpis.avgAge.toFixed(0)} days`} icon={<Clock className="h-5 w-5"/>} />
-                        <MetricCard title="Positions Closed This Month" value={chartData.recruitment.kpis.closedThisMonth.toString()} icon={<Check className="h-5 w-5"/>} />
-                        <MetricCard title="Offer Acceptance Rate" value={`${chartData.recruitment.kpis.acceptanceRate.toFixed(2)}%`} icon={<Target className="h-5 w-5"/>} />
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <ChartCard title="Recruitment Funnel" description="Total candidates across all stages of the pipeline.">
-                            <div className="h-96 w-full"><Bar data={{
-                                    labels: ['Shortlisted', 'Interviewed', 'Offers Extended', 'Offers Accepted', 'Joined'],
-                                    datasets: [{ label: 'Candidate Count', data: Object.values(chartData.recruitment.funnel), backgroundColor: '#10b981'}]
-                                }} options={{...baseChartOptions, scales: {y: {beginAtZero: true}}, plugins: {...baseChartOptions.plugins, datalabels: dataLabelsConfig}}} />
-                            </div>
-                        </ChartCard>
-                         <ChartCard title="Open Positions by Department" description="Breakdown of open roles by type. Click a segment to view positions.">
-                             <div className="h-96 w-full">
-                                <Bar data={{
-                                    labels: chartData.recruitment.openByDept.map(d => d.department),
-                                    datasets: [
-                                        { label: 'Replacement', data: chartData.recruitment.openByDept.map(d => d.replacement), backgroundColor: '#3b82f6' },
-                                        { label: 'New (Budgeted)', data: chartData.recruitment.openByDept.map(d => d.newBudgeted), backgroundColor: '#22c55e' },
-                                        { label: 'New (Non-Budgeted)', data: chartData.recruitment.openByDept.map(d => d.newNonBudgeted), backgroundColor: '#f97316' }
-                                    ]
-                                }} options={{
-                                    ...baseChartOptions, 
-                                    onClick: (e, el, chart) => handleOpenPositionsByDeptClick(e, el, chart),
-                                    onHover: handleChartHover,
-                                    indexAxis: 'y', 
-                                    scales: {
-                                        x: { stacked: true, beginAtZero: true, ticks: { color: textPrimaryColor, precision: 0 }, grid: { color: gridColor }, border: { color: borderColor } }, 
-                                        y: { stacked: true, ticks: { color: textPrimaryColor }, grid: { drawOnChartArea: false }, border: { color: borderColor } }
-                                    }, 
-                                    plugins: {
-                                        ...baseChartOptions.plugins, 
-                                        tooltip: {
-                                            ...baseChartOptions.plugins.tooltip,
-                                            callbacks: {
-                                                label: (context: any) => {
-                                                    const label = context.dataset.label || '';
-                                                    const value = context.parsed.x;
-                                                    if (label && value != null) {
-                                                        return `${label}: ${value}`;
-                                                    }
-                                                    return '';
-                                                },
-                                                footer: (tooltipItems: any[]) => {
-                                                    if (!tooltipItems || tooltipItems.length === 0) return '';
-                                                    const dataIndex = tooltipItems[0].dataIndex;
-                                                    let total = 0;
-                                                    tooltipItems[0].chart.data.datasets.forEach((dataset: any) => {
-                                                        const value = dataset.data[dataIndex];
-                                                        if (typeof value === 'number') {
-                                                            total += value;
-                                                        }
-                                                    });
-                                                    return `Total: ${total}`;
-                                                }
-                                            }
-                                        },
-                                        datalabels: { ...dataLabelsConfig, formatter: (value) => (value as number > 0 ? value : '') }
-                                    }
-                                }}/>
-                            </div>
-                        </ChartCard>
-                        <ChartCard title="Open Positions by Designation" description="Breakdown of top open roles by type.">
-                            <div className="h-96 w-full">
-                                <Bar data={{
-                                    labels: openByTitleData.map(d => d.title),
-                                    datasets: [
-                                        { label: 'Replacement', data: openByTitleData.map(d => d.replacement), backgroundColor: '#3b82f6' },
-                                        { label: 'New (Budgeted)', data: openByTitleData.map(d => d.newBudgeted), backgroundColor: '#22c55e' },
-                                        { label: 'New (Non-Budgeted)', data: openByTitleData.map(d => d.newNonBudgeted), backgroundColor: '#f97316' }
-                                    ]
-                                }} options={{
-                                    ...baseChartOptions, 
-                                    indexAxis: 'y', 
-                                    scales: {
-                                        x: { stacked: true, beginAtZero: true, ticks: { color: textPrimaryColor, precision: 0 }, grid: { color: gridColor }, border: { color: borderColor } }, 
-                                        y: { stacked: true, ticks: { color: textPrimaryColor }, grid: { drawOnChartArea: false }, border: { color: borderColor } }
-                                    }, 
-                                    plugins: {
-                                        ...baseChartOptions.plugins, 
-                                        tooltip: {
-                                            ...baseChartOptions.plugins.tooltip,
-                                            callbacks: {
-                                                label: (context: any) => {
-                                                    const label = context.dataset.label || '';
-                                                    const value = context.parsed.x;
-                                                    if (label && value != null) {
-                                                        return `${label}: ${value}`;
-                                                    }
-                                                    return '';
-                                                },
-                                                footer: (tooltipItems: any[]) => {
-                                                    if (!tooltipItems || tooltipItems.length === 0) return '';
-                                                    const dataIndex = tooltipItems[0].dataIndex;
-                                                    let total = 0;
-                                                    tooltipItems[0].chart.data.datasets.forEach((dataset: any) => {
-                                                        const value = dataset.data[dataIndex];
-                                                        if (typeof value === 'number') {
-                                                            total += value;
-                                                        }
-                                                    });
-                                                    return `Total: ${total}`;
-                                                }
-                                            }
-                                        },
-                                        datalabels: { ...dataLabelsConfig, formatter: (value) => (value as number > 0 ? value : '') }
-                                    }
-                                }}/>
-                            </div>
-                        </ChartCard>
-                         <Card className="cursor-pointer hover:border-primary-500/50 transition-colors" onClick={() => setPositionModal({ isOpen: true, title: 'All Open Positions', description: 'Detailed list of all positions currently open.', positions: chartData.recruitment.allOpen })}>
-                            <CardHeader><CardTitle>Oldest Open Positions</CardTitle><CardDescription>Top 5 longest-running open positions. Click to see all.</CardDescription></CardHeader>
-                            <CardContent className="space-y-2">
-                                {chartData.recruitment.oldestOpen.map(pos => (
-                                    <div key={pos.id} className="p-2 bg-background rounded-md flex justify-between items-center text-sm">
-                                        <div><p className="font-semibold text-text-primary">{pos.title}</p><p className="text-xs text-text-secondary">{pos.department}</p></div>
-                                        <p className="font-medium text-text-primary">{Math.floor((new Date().getTime() - new Date(pos.openDate).getTime()) / (1000*3600*24))} days</p>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-                         <Card className="cursor-pointer hover:border-primary-500/50 transition-colors" onClick={() => setPositionModal({ isOpen: true, title: 'All Closed Positions', description: 'Detailed list of all recently filled positions.', positions: chartData.recruitment.allClosed })}>
-                            <CardHeader><CardTitle>Recently Closed Positions</CardTitle><CardDescription>Top 5 most recently filled positions. Click to see all.</CardDescription></CardHeader>
-                            <CardContent className="space-y-2">
-                                {chartData.recruitment.recentlyClosed.map(pos => (
-                                    <div key={pos.id} className="p-2 bg-background rounded-md flex justify-between items-center text-sm">
-                                        <div><p className="font-semibold text-text-primary">{pos.title}</p><p className="text-xs text-text-secondary">{displayedData.find(e=>e.id===pos.hiredEmployeeId)?.name || 'N/A'}</p></div>
-                                        <p className="font-medium text-text-primary">{pos.closeDate ? new Date(pos.closeDate).toLocaleDateString() : 'N/A'}</p>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-                        <Card className="cursor-pointer hover:border-primary-500/50 transition-colors" onClick={() => setPositionModal({ isOpen: true, title: 'All Positions on Hold', description: 'Detailed list of all positions currently on hold.', positions: chartData.recruitment.allOnHold })}>
-                            <CardHeader><CardTitle>Top 5 Positions on Hold</CardTitle><CardDescription>Longest-held positions that may require follow-up. Click to see all.</CardDescription></CardHeader>
-                            <CardContent className="space-y-2">
-                                {chartData.recruitment.topOnHold.map(pos => (
-                                    <div key={pos.id} className="p-2 bg-background rounded-md flex justify-between items-center text-sm">
-                                        <div><p className="font-semibold text-text-primary">{pos.title}</p><p className="text-xs text-text-secondary">{pos.department}</p></div>
-                                        <div className="text-right"><p className="font-medium text-text-primary">{pos.heldBy}</p><p className="text-xs text-text-secondary">Held by</p></div>
-                                    </div>
-                                ))}
-                                {chartData.recruitment.topOnHold.length === 0 && <p className="text-center text-text-secondary py-4">No positions on hold.</p>}
-                            </CardContent>
-                        </Card>
-                    </div>
-                 </div>
+                </div>
             )}
             
+            {/* Recruitment Report */}
+           {/* Recruitment Report */}
+           {activeReport === 'recruitment' && (
+                <div className="space-y-6">
+                     {jobPositions.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed border-border rounded-lg bg-card/30">
+                            <div className="p-6 bg-background rounded-full border border-border mb-4 shadow-sm">
+                                <Briefcase className="h-10 w-10 text-text-secondary opacity-50" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-text-primary mb-2">No Recruitment Data Found</h3>
+                            <p className="text-text-secondary text-center max-w-md">
+                                No job positions have been created or imported. Add job positions to see the recruitment funnel and hiring metrics.
+                            </p>
+                        </div>
+                     ) : (
+                        <>
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                                <MetricCard title="Open Positions" value={chartData.recruitment.kpis.openPositions.toString()} icon={<FolderOpen className="h-5 w-5"/>} />
+                                <MetricCard title="Positions on Hold" value={chartData.recruitment.kpis.onHoldPositions.toString()} icon={<PauseCircle className="h-5 w-5"/>} />
+                                <MetricCard title="Avg. Age of Open Positions" value={`${chartData.recruitment.kpis.avgAge.toFixed(0)} days`} icon={<Clock className="h-5 w-5"/>} />
+                                <MetricCard title="Positions Closed This Month" value={chartData.recruitment.kpis.closedThisMonth.toString()} icon={<Check className="h-5 w-5"/>} />
+                                <MetricCard title="Offer Acceptance Rate" value={`${chartData.recruitment.kpis.acceptanceRate.toFixed(2)}%`} icon={<Target className="h-5 w-5"/>} />
+                            </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <ChartCard title="Recruitment Funnel" description="Total candidates across all stages of the pipeline.">
+                                    <div className="h-96 w-full"><Bar data={{
+                                            labels: ['Shortlisted', 'Interviewed', 'Offers Extended', 'Offers Accepted', 'Joined'],
+                                            datasets: [{ label: 'Candidate Count', data: Object.values(chartData.recruitment.funnel), backgroundColor: '#10b981'}]
+                                        }} options={{...baseChartOptions, scales: {y: {beginAtZero: true}}, plugins: {...baseChartOptions.plugins, datalabels: dataLabelsConfig}}} />
+                                    </div>
+                                </ChartCard>
+                                <ChartCard title="Open Positions by Department" description="Breakdown of open roles by type. Click a segment to view positions.">
+                                    <div className="h-96 w-full">
+                                        <Bar data={{
+                                            labels: chartData.recruitment.openByDept.map(d => d.department),
+                                            datasets: [
+                                                { label: 'Replacement', data: chartData.recruitment.openByDept.map(d => d.replacement), backgroundColor: '#3b82f6' },
+                                                { label: 'New (Budgeted)', data: chartData.recruitment.openByDept.map(d => d.newBudgeted), backgroundColor: '#22c55e' },
+                                                { label: 'New (Non-Budgeted)', data: chartData.recruitment.openByDept.map(d => d.newNonBudgeted), backgroundColor: '#f97316' }
+                                            ]
+                                        }} options={{
+                                            ...baseChartOptions, 
+                                            onClick: (e, el, chart) => handleOpenPositionsByDeptClick(e, el, chart),
+                                            onHover: handleChartHover,
+                                            indexAxis: 'y', 
+                                            scales: {
+                                                x: { stacked: true, beginAtZero: true, ticks: { color: textPrimaryColor, precision: 0 }, grid: { color: gridColor }, border: { color: borderColor } }, 
+                                                y: { stacked: true, ticks: { color: textPrimaryColor }, grid: { drawOnChartArea: false }, border: { color: borderColor } }
+                                            }, 
+                                            plugins: {
+                                                ...baseChartOptions.plugins, 
+                                                tooltip: {
+                                                    ...baseChartOptions.plugins.tooltip,
+                                                    callbacks: {
+                                                        label: (context: any) => {
+                                                            const label = context.dataset.label || '';
+                                                            const value = context.parsed.x;
+                                                            if (label && value != null) {
+                                                                return `${label}: ${value}`;
+                                                            }
+                                                            return '';
+                                                        },
+                                                        footer: (tooltipItems: any[]) => {
+                                                            if (!tooltipItems || tooltipItems.length === 0) return '';
+                                                            const dataIndex = tooltipItems[0].dataIndex;
+                                                            let total = 0;
+                                                            tooltipItems[0].chart.data.datasets.forEach((dataset: any) => {
+                                                                const value = dataset.data[dataIndex];
+                                                                if (typeof value === 'number') {
+                                                                    total += value;
+                                                                }
+                                                            });
+                                                            return `Total: ${total}`;
+                                                        }
+                                                    }
+                                                },
+                                                datalabels: { ...dataLabelsConfig, formatter: (value) => (value as number > 0 ? value : '') }
+                                            }
+                                        }}/>
+                                    </div>
+                                </ChartCard>
+                                <ChartCard title="Open Positions by Designation" description="Breakdown of top open roles by type.">
+                                    <div className="h-96 w-full">
+                                        <Bar data={{
+                                            labels: openByTitleData.map(d => d.title),
+                                            datasets: [
+                                                { label: 'Replacement', data: openByTitleData.map(d => d.replacement), backgroundColor: '#3b82f6' },
+                                                { label: 'New (Budgeted)', data: openByTitleData.map(d => d.newBudgeted), backgroundColor: '#22c55e' },
+                                                { label: 'New (Non-Budgeted)', data: openByTitleData.map(d => d.newNonBudgeted), backgroundColor: '#f97316' }
+                                            ]
+                                        }} options={{
+                                            ...baseChartOptions, 
+                                            indexAxis: 'y', 
+                                            scales: {
+                                                x: { stacked: true, beginAtZero: true, ticks: { color: textPrimaryColor, precision: 0 }, grid: { color: gridColor }, border: { color: borderColor } }, 
+                                                y: { stacked: true, ticks: { color: textPrimaryColor }, grid: { drawOnChartArea: false }, border: { color: borderColor } }
+                                            }, 
+                                            plugins: {
+                                                ...baseChartOptions.plugins, 
+                                                tooltip: {
+                                                    ...baseChartOptions.plugins.tooltip,
+                                                    callbacks: {
+                                                        label: (context: any) => {
+                                                            const label = context.dataset.label || '';
+                                                            const value = context.parsed.x;
+                                                            if (label && value != null) {
+                                                                return `${label}: ${value}`;
+                                                            }
+                                                            return '';
+                                                        },
+                                                        footer: (tooltipItems: any[]) => {
+                                                            if (!tooltipItems || tooltipItems.length === 0) return '';
+                                                            const dataIndex = tooltipItems[0].dataIndex;
+                                                            let total = 0;
+                                                            tooltipItems[0].chart.data.datasets.forEach((dataset: any) => {
+                                                                const value = dataset.data[dataIndex];
+                                                                if (typeof value === 'number') {
+                                                                    total += value;
+                                                                }
+                                                            });
+                                                            return `Total: ${total}`;
+                                                        }
+                                                    }
+                                                },
+                                                datalabels: { ...dataLabelsConfig, formatter: (value) => (value as number > 0 ? value : '') }
+                                            }
+                                        }}/>
+                                    </div>
+                                </ChartCard>
+                                <Card className="cursor-pointer hover:border-primary-500/50 transition-colors" onClick={() => setPositionModal({ isOpen: true, title: 'All Open Positions', description: 'Detailed list of all positions currently open.', positions: chartData.recruitment.allOpen })}>
+                                    <CardHeader><CardTitle>Oldest Open Positions</CardTitle><CardDescription>Top 5 longest-running open positions. Click to see all.</CardDescription></CardHeader>
+                                    <CardContent className="space-y-2">
+                                        {chartData.recruitment.oldestOpen.map(pos => (
+                                            <div key={pos.id} className="p-2 bg-background rounded-md flex justify-between items-center text-sm">
+                                                <div><p className="font-semibold text-text-primary">{pos.title}</p><p className="text-xs text-text-secondary">{pos.department}</p></div>
+                                                <p className="font-medium text-text-primary">{Math.floor((new Date().getTime() - new Date(pos.openDate).getTime()) / (1000*3600*24))} days</p>
+                                            </div>
+                                        ))}
+                                    </CardContent>
+                                </Card>
+                                <Card className="cursor-pointer hover:border-primary-500/50 transition-colors" onClick={() => setPositionModal({ isOpen: true, title: 'All Closed Positions', description: 'Detailed list of all recently filled positions.', positions: chartData.recruitment.allClosed })}>
+                                    <CardHeader><CardTitle>Recently Closed Positions</CardTitle><CardDescription>Top 5 most recently filled positions. Click to see all.</CardDescription></CardHeader>
+                                    <CardContent className="space-y-2">
+                                        {chartData.recruitment.recentlyClosed.map(pos => (
+                                            <div key={pos.id} className="p-2 bg-background rounded-md flex justify-between items-center text-sm">
+                                                <div><p className="font-semibold text-text-primary">{pos.title}</p><p className="text-xs text-text-secondary">{displayedData.find(e=>e.id===pos.hiredEmployeeId)?.name || 'N/A'}</p></div>
+                                                <p className="font-medium text-text-primary">{pos.closeDate ? new Date(pos.closeDate).toLocaleDateString() : 'N/A'}</p>
+                                            </div>
+                                        ))}
+                                    </CardContent>
+                                </Card>
+                                <Card className="cursor-pointer hover:border-primary-500/50 transition-colors" onClick={() => setPositionModal({ isOpen: true, title: 'All Positions on Hold', description: 'Detailed list of all positions currently on hold.', positions: chartData.recruitment.allOnHold })}>
+                                    <CardHeader><CardTitle>Top 5 Positions on Hold</CardTitle><CardDescription>Longest-held positions that may require follow-up. Click to see all.</CardDescription></CardHeader>
+                                    <CardContent className="space-y-2">
+                                        {chartData.recruitment.topOnHold.map(pos => (
+                                            <div key={pos.id} className="p-2 bg-background rounded-md flex justify-between items-center text-sm">
+                                                <div><p className="font-semibold text-text-primary">{pos.title}</p><p className="text-xs text-text-secondary">{pos.department}</p></div>
+                                                <div className="text-right"><p className="font-medium text-text-primary">{pos.heldBy}</p><p className="text-xs text-text-secondary">Held by</p></div>
+                                            </div>
+                                        ))}
+                                        {chartData.recruitment.topOnHold.length === 0 && <p className="text-center text-text-secondary py-4">No positions on hold.</p>}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
+            
+            {/* Attendance Report */}
             {/* Attendance Report */}
             {activeReport === 'attendance' && (
                 <div className="space-y-6">
@@ -1557,36 +1770,54 @@ const StandardReportsView: React.FC = () => {
                             />
                         </div>
                     </Card>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                        <MetricCard title="Overall Absence Rate" value={`${chartData.attendance.kpis.overall.toFixed(2)}%`} icon={<Activity className="h-5 w-5"/>} />
-                        <MetricCard title="Unscheduled Absence" value={`${chartData.attendance.kpis.unscheduled.toFixed(2)}%`} icon={<Activity className="h-5 w-5 text-red-400"/>} />
-                        <MetricCard title="Sick Leave Rate" value={`${chartData.attendance.kpis.sick.toFixed(2)}%`} icon={<Thermometer className="h-5 w-5"/>} />
-                        <MetricCard title="PTO Utilization" value={`${chartData.attendance.kpis.pto.toFixed(2)}%`} icon={<Calendar className="h-5 w-5"/>} />
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                         <ChartCard title="Absence Trend" description="Total sick & unscheduled absences over the last 6 months.">
-                            <div className="h-64 w-full"><Line data={chartData.attendance.absenceTrend} options={{ ...baseChartOptions, scales: { x: { ticks: { color: textPrimaryColor }, grid: { color: gridColor }, border: { color: borderColor } }, y: { ticks: { color: textPrimaryColor }, grid: { color: gridColor }, border: { color: borderColor } } } }} /></div>
-                        </ChartCard>
-                        <ChartCard title="Absence Breakdown" description="Distribution of sick leave vs. unscheduled absences.">
-                            <div className="h-64 w-full"><Pie data={chartData.attendance.absenceBreakdown} options={{...baseChartOptions, plugins: {...baseChartOptions.plugins, legend: {...baseChartOptions.plugins.legend, position: 'right'}, datalabels: { display: true, color: dataLabelColor, font: { weight: 'bold' }, formatter: robustPieChartLabelFormatter }}}} /></div>
-                        </ChartCard>
-                         {attendanceFilters.department === 'all' && (
-                            <ChartCard title="Absences by Department" description="Departments with the highest number of absences. Click to view employees.">
-                                <div className="h-96 w-full"><Bar data={chartData.attendance.absencesByDept} options={{ ...baseChartOptions, onClick: handleAbsencesByDeptClick, onHover: handleChartHover, indexAxis: 'y', scales: { y: { ticks: { color: textPrimaryColor }, grid: { drawOnChartArea: false }, border: { color: borderColor } }, x: { ticks: { color: textPrimaryColor }, grid: { color: gridColor }, border: { color: borderColor } } }, plugins: {...baseChartOptions.plugins, datalabels: dataLabelsConfig } }} /></div>
-                            </ChartCard>
-                        )}
-                        <Card className={attendanceFilters.department !== 'all' ? 'lg:col-span-2' : ''}>
-                             <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5"/>Top 10 Employees by Absences</CardTitle><CardDescription>Active employees with the most absences in the period.</CardDescription></CardHeader>
-                             <CardContent className="space-y-3">
-                                {chartData.attendance.topAbsentees.length > 0 ? chartData.attendance.topAbsentees.map(({ employee, absenceCount }) => (
-                                    <div key={employee.id} className="flex items-center justify-between p-2 bg-background rounded-md">
-                                        <div><Link to={`/app/profiles/${employee.id}`} className="font-semibold text-text-primary hover:underline">{employee.name}</Link><p className="text-xs text-text-secondary">{employee.department}</p></div>
-                                        <div className="text-right"><p className="font-bold text-lg text-red-400">{absenceCount}</p><p className="text-xs text-text-secondary">Absence Days</p></div>
-                                    </div>
-                                )) : <p className="text-center text-text-secondary py-8">No notable absenteeism.</p>}
-                            </CardContent>
-                        </Card>
-                    </div>
+
+                    {/* Check if data exists after filtering */}
+                    {att_filteredAttendance.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center min-h-[400px] border-2 border-dashed border-border rounded-lg bg-card/30">
+                            <div className="p-6 bg-background rounded-full border border-border mb-4 shadow-sm">
+                                <Clock className="h-10 w-10 text-text-secondary opacity-50" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-text-primary mb-2">No Attendance Data Found</h3>
+                            <p className="text-text-secondary text-center max-w-md">
+                                {attendanceData.length === 0 
+                                    ? "No attendance records have been uploaded to the system yet." 
+                                    : "No records matched your selected time period or department."}
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                <MetricCard title="Overall Absence Rate" value={`${chartData.attendance.kpis.overall.toFixed(2)}%`} icon={<Activity className="h-5 w-5"/>} />
+                                <MetricCard title="Unscheduled Absence" value={`${chartData.attendance.kpis.unscheduled.toFixed(2)}%`} icon={<Activity className="h-5 w-5 text-red-400"/>} />
+                                <MetricCard title="Sick Leave Rate" value={`${chartData.attendance.kpis.sick.toFixed(2)}%`} icon={<Thermometer className="h-5 w-5"/>} />
+                                <MetricCard title="PTO Utilization" value={`${chartData.attendance.kpis.pto.toFixed(2)}%`} icon={<Calendar className="h-5 w-5"/>} />
+                            </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <ChartCard title="Absence Trend" description="Total sick & unscheduled absences over the last 6 months.">
+                                    <div className="h-64 w-full"><Line data={chartData.attendance.absenceTrend} options={{ ...baseChartOptions, scales: { x: { ticks: { color: textPrimaryColor }, grid: { color: gridColor }, border: { color: borderColor } }, y: { ticks: { color: textPrimaryColor }, grid: { color: gridColor }, border: { color: borderColor } } } }} /></div>
+                                </ChartCard>
+                                <ChartCard title="Absence Breakdown" description="Distribution of sick leave vs. unscheduled absences.">
+                                    <div className="h-64 w-full"><Pie data={chartData.attendance.absenceBreakdown} options={{...baseChartOptions, plugins: {...baseChartOptions.plugins, legend: {...baseChartOptions.plugins.legend, position: 'right'}, datalabels: { display: true, color: dataLabelColor, font: { weight: 'bold' }, formatter: robustPieChartLabelFormatter }}}} /></div>
+                                </ChartCard>
+                                {attendanceFilters.department === 'all' && (
+                                    <ChartCard title="Absences by Department" description="Departments with the highest number of absences. Click to view employees.">
+                                        <div className="h-96 w-full"><Bar data={chartData.attendance.absencesByDept} options={{ ...baseChartOptions, onClick: handleAbsencesByDeptClick, onHover: handleChartHover, indexAxis: 'y', scales: { y: { ticks: { color: textPrimaryColor }, grid: { drawOnChartArea: false }, border: { color: borderColor } }, x: { ticks: { color: textPrimaryColor }, grid: { color: gridColor }, border: { color: borderColor } } }, plugins: {...baseChartOptions.plugins, datalabels: dataLabelsConfig } }} /></div>
+                                    </ChartCard>
+                                )}
+                                <Card className={attendanceFilters.department !== 'all' ? 'lg:col-span-2' : ''}>
+                                    <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5"/>Top 10 Employees by Absences</CardTitle><CardDescription>Active employees with the most absences in the period.</CardDescription></CardHeader>
+                                    <CardContent className="space-y-3">
+                                        {chartData.attendance.topAbsentees.length > 0 ? chartData.attendance.topAbsentees.map(({ employee, absenceCount }) => (
+                                            <div key={employee.id} className="flex items-center justify-between p-2 bg-background rounded-md">
+                                                <div><Link to={`/app/profiles/${employee.id}`} className="font-semibold text-text-primary hover:underline">{employee.name}</Link><p className="text-xs text-text-secondary">{employee.department}</p></div>
+                                                <div className="text-right"><p className="font-bold text-lg text-red-400">{absenceCount}</p><p className="text-xs text-text-secondary">Absence Days</p></div>
+                                            </div>
+                                        )) : <p className="text-center text-text-secondary py-8">No notable absenteeism.</p>}
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
             
